@@ -4,62 +4,33 @@ namespace App\Http\Controllers;
 
 use App\Models\Respuesta;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 
 class RespuestaController extends Controller
 {
-    /**
-     * Display a listing of the resource.
-     */
-    public function index()
+    public function store(Request $request, $hiloId)
     {
-        //
+        $request->validate(['cuerpo' => 'required|string']);
+
+        $respuesta = Respuesta::create([
+            'hilo_id' => $hiloId,
+            'usuario_id' => Auth::id(),
+            'cuerpo' => $request->cuerpo
+        ]);
+
+        return response()->json($respuesta, 201);
     }
 
-    /**
-     * Show the form for creating a new resource.
-     */
-    public function create()
+    public function destroy($id)
     {
-        //
-    }
+        $respuesta = Respuesta::findOrFail($id);
 
-    /**
-     * Store a newly created resource in storage.
-     */
-    public function store(Request $request)
-    {
-        //
-    }
+        if ($respuesta->usuario_id !== Auth::id()) {
+            return response()->json(['error' => 'No autorizado'], 403);
+        }
 
-    /**
-     * Display the specified resource.
-     */
-    public function show(Respuesta $respuesta)
-    {
-        //
-    }
+        $respuesta->delete();
 
-    /**
-     * Show the form for editing the specified resource.
-     */
-    public function edit(Respuesta $respuesta)
-    {
-        //
-    }
-
-    /**
-     * Update the specified resource in storage.
-     */
-    public function update(Request $request, Respuesta $respuesta)
-    {
-        //
-    }
-
-    /**
-     * Remove the specified resource from storage.
-     */
-    public function destroy(Respuesta $respuesta)
-    {
-        //
+        return response()->json(['mensaje' => 'Respuesta eliminada']);
     }
 }

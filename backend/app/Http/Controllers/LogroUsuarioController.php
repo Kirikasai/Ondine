@@ -4,62 +4,37 @@ namespace App\Http\Controllers;
 
 use App\Models\LogroUsuario;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 
 class LogroUsuarioController extends Controller
 {
-    /**
-     * Display a listing of the resource.
-     */
+    // Ver logros desbloqueados del usuario
     public function index()
     {
-        //
+        return LogroUsuario::where('usuario_id', Auth::id())->with('logro')->get();
     }
 
-    /**
-     * Show the form for creating a new resource.
-     */
-    public function create()
-    {
-        //
-    }
-
-    /**
-     * Store a newly created resource in storage.
-     */
+    // Asignar logro a usuario
     public function store(Request $request)
     {
-        //
-    }
+        $request->validate([
+            'logro_id' => 'required|exists:logros,id'
+        ]);
 
-    /**
-     * Display the specified resource.
-     */
-    public function show(LogroUsuario $logroUsuario)
-    {
-        //
-    }
+        $existe = LogroUsuario::where('usuario_id', Auth::id())
+                              ->where('logro_id', $request->logro_id)
+                              ->first();
 
-    /**
-     * Show the form for editing the specified resource.
-     */
-    public function edit(LogroUsuario $logroUsuario)
-    {
-        //
-    }
+        if ($existe) {
+            return response()->json(['mensaje' => 'Logro ya desbloqueado'], 400);
+        }
 
-    /**
-     * Update the specified resource in storage.
-     */
-    public function update(Request $request, LogroUsuario $logroUsuario)
-    {
-        //
-    }
+        $logroUsuario = LogroUsuario::create([
+            'usuario_id' => Auth::id(),
+            'logro_id' => $request->logro_id,
+            'desbloqueado_en' => now()
+        ]);
 
-    /**
-     * Remove the specified resource from storage.
-     */
-    public function destroy(LogroUsuario $logroUsuario)
-    {
-        //
+        return response()->json($logroUsuario, 201);
     }
 }

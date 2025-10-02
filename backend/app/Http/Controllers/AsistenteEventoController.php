@@ -4,62 +4,33 @@ namespace App\Http\Controllers;
 
 use App\Models\AsistenteEvento;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 
 class AsistenteEventoController extends Controller
 {
-    /**
-     * Display a listing of the resource.
-     */
-    public function index()
+    // Ver asistentes de un evento
+    public function index($eventoId)
     {
-        //
+        return AsistenteEvento::where('evento_id', $eventoId)->with('usuario')->get();
     }
 
-    /**
-     * Show the form for creating a new resource.
-     */
-    public function create()
+    public function store(Request $request, $eventoId)
     {
-        //
-    }
+        $request->validate([
+            'estado' => 'in:asistire,interesado,no_asistire'
+        ]);
 
-    /**
-     * Store a newly created resource in storage.
-     */
-    public function store(Request $request)
-    {
-        //
-    }
+        $asistente = AsistenteEvento::updateOrCreate(
+            [
+                'evento_id' => $eventoId,
+                'usuario_id' => Auth::id()
+            ],
+            [
+                'estado' => $request->estado ?? 'asistire'
+            ]
+        );
 
-    /**
-     * Display the specified resource.
-     */
-    public function show(AsistenteEvento $asistenteEvento)
-    {
-        //
-    }
-
-    /**
-     * Show the form for editing the specified resource.
-     */
-    public function edit(AsistenteEvento $asistenteEvento)
-    {
-        //
-    }
-
-    /**
-     * Update the specified resource in storage.
-     */
-    public function update(Request $request, AsistenteEvento $asistenteEvento)
-    {
-        //
-    }
-
-    /**
-     * Remove the specified resource from storage.
-     */
-    public function destroy(AsistenteEvento $asistenteEvento)
-    {
-        //
+        return response()->json($asistente, 201);
     }
 }
+

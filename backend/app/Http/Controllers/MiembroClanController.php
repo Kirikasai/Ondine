@@ -3,63 +3,33 @@
 namespace App\Http\Controllers;
 
 use App\Models\MiembroClan;
-use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 
 class MiembroClanController extends Controller
 {
-    /**
-     * Display a listing of the resource.
-     */
-    public function index()
+    // Ver todos los miembros de un clan
+    public function index($clanId)
     {
-        //
+        return MiembroClan::where('clan_id', $clanId)->with('usuario')->get();
     }
 
-    /**
-     * Show the form for creating a new resource.
-     */
-    public function create()
+    // Unirse a un clan
+    public function unirse($clanId)
     {
-        //
-    }
+        $existe = MiembroClan::where('clan_id', $clanId)
+                             ->where('usuario_id', Auth::id())
+                             ->first();
 
-    /**
-     * Store a newly created resource in storage.
-     */
-    public function store(Request $request)
-    {
-        //
-    }
+        if ($existe) {
+            return response()->json(['mensaje' => 'Ya eres miembro de este clan'], 400);
+        }
 
-    /**
-     * Display the specified resource.
-     */
-    public function show(MiembroClan $miembroClan)
-    {
-        //
-    }
+        $miembro = MiembroClan::create([
+            'clan_id' => $clanId,
+            'usuario_id' => Auth::id(),
+            'rol' => 'miembro'
+        ]);
 
-    /**
-     * Show the form for editing the specified resource.
-     */
-    public function edit(MiembroClan $miembroClan)
-    {
-        //
-    }
-
-    /**
-     * Update the specified resource in storage.
-     */
-    public function update(Request $request, MiembroClan $miembroClan)
-    {
-        //
-    }
-
-    /**
-     * Remove the specified resource from storage.
-     */
-    public function destroy(MiembroClan $miembroClan)
-    {
-        //
+        return response()->json($miembro, 201);
     }
 }

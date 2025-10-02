@@ -4,62 +4,31 @@ namespace App\Http\Controllers;
 
 use App\Models\Hilo;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 
 class HiloController extends Controller
 {
-    /**
-     * Display a listing of the resource.
-     */
-    public function index()
+    // Ver todos los hilos de un foro
+    public function index($foroId)
     {
-        //
+        return Hilo::where('foro_id', $foroId)->with('usuario')->get();
     }
 
-    /**
-     * Show the form for creating a new resource.
-     */
-    public function create()
+    // Crear un nuevo hilo en un foro
+    public function store(Request $request, $foroId)
     {
-        //
-    }
+        $request->validate([
+            'titulo' => 'required|string|max:255',
+            'cuerpo' => 'required|string'
+        ]);
 
-    /**
-     * Store a newly created resource in storage.
-     */
-    public function store(Request $request)
-    {
-        //
-    }
+        $hilo = Hilo::create([
+            'foro_id' => $foroId,
+            'usuario_id' => Auth::id(),
+            'titulo' => $request->titulo,
+            'cuerpo' => $request->cuerpo
+        ]);
 
-    /**
-     * Display the specified resource.
-     */
-    public function show(Hilo $hilo)
-    {
-        //
-    }
-
-    /**
-     * Show the form for editing the specified resource.
-     */
-    public function edit(Hilo $hilo)
-    {
-        //
-    }
-
-    /**
-     * Update the specified resource in storage.
-     */
-    public function update(Request $request, Hilo $hilo)
-    {
-        //
-    }
-
-    /**
-     * Remove the specified resource from storage.
-     */
-    public function destroy(Hilo $hilo)
-    {
-        //
+        return response()->json($hilo, 201);
     }
 }
