@@ -1,8 +1,8 @@
 import { useState } from "react";
-import api from "../../services/api";
+import api from "../../../frontend/src/Services/api";
 
-export default function RegisterForm() {
-  const [form, setForm] = useState({ nombre_usuario: "", correo: "", contrasena: "" });
+export default function LoginForm() {
+  const [form, setForm] = useState({ correo: "", contrasena: "" });
   const [mensaje, setMensaje] = useState("");
 
   const handleChange = (e) => {
@@ -12,20 +12,20 @@ export default function RegisterForm() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      await api.post("/registro", form);
-      setMensaje("✅ Usuario registrado correctamente");
+      const res = await api.post("/login", form);
+      localStorage.setItem("token", res.data.token);
+      setMensaje("✅ Sesión iniciada");
     } catch (err) {
-      setMensaje("❌ Error: " + err.response?.data?.error || "Error al registrar");
+      setMensaje("❌ Error: " + err.response?.data?.error || "Error en login");
     }
   };
 
   return (
     <form onSubmit={handleSubmit} className="p-4 border rounded">
-      <h2>Registro</h2>
-      <input type="text" name="nombre_usuario" placeholder="Usuario" onChange={handleChange} />
+      <h2>Iniciar Sesión</h2>
       <input type="email" name="correo" placeholder="Correo" onChange={handleChange} />
       <input type="password" name="contrasena" placeholder="Contraseña" onChange={handleChange} />
-      <button type="submit">Registrarse</button>
+      <button type="submit">Entrar</button>
       <p>{mensaje}</p>
     </form>
   );
