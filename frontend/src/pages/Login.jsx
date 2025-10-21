@@ -1,5 +1,5 @@
 import { useState } from "react";
-import api from "../Services/api";
+import api from "../services/apiServer";
 import { Eye, EyeClosed } from "lucide-react";
 
 export default function LoginForm() {

@@ -22,7 +22,9 @@ export default function Header() {
         <Link to="/juegos" className="hover:text-[#A56BFA] transition-colors">
           Juegos
         </Link>
-
+        <Link to="/noticias" className="hover:text-[#A56BFA] transition-colors">
+          Noticias
+        </Link>
         <Link to="/foros" className="hover:text-[#A56BFA] transition-colors">
           Foros
         </Link>

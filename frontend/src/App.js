@@ -5,6 +5,7 @@ import Register from "./pages/Register";
 import Header from "./components/Layout/Header";
 import Footer from "./components/Layout/Footer";
 import Juegos from "./pages/Juegos";
+import Noticias from "./pages/Noticias";
 
 function App() {
   return (
@@ -18,6 +19,7 @@ function App() {
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
             <Route path="/juegos" element={<Juegos />} />
+            <Route path="/noticias" element={<Noticias />} />
             {/* Aquí podrás añadir Foros, Blogs, Eventos */}
           </Routes>
         </main>
