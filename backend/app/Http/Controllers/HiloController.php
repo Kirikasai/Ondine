@@ -1,5 +1,4 @@
 <?php
-
 namespace App\Http\Controllers;
 
 use App\Models\Hilo;
@@ -8,27 +7,20 @@ use Illuminate\Support\Facades\Auth;
 
 class HiloController extends Controller
 {
-    // Ver todos los hilos de un foro
-    public function index($foroId)
+    public function show($id)
     {
-        return Hilo::where('foro_id', $foroId)->with('usuario')->get();
+        return Hilo::with(['usuario', 'respuestas.usuario'])->findOrFail($id);
     }
 
-    // Crear un nuevo hilo en un foro
-    public function store(Request $request, $foroId)
+    public function destroy($id)
     {
-        $request->validate([
-            'titulo' => 'required|string|max:255',
-            'cuerpo' => 'required|string'
-        ]);
+        $hilo = Hilo::findOrFail($id);
 
-        $hilo = Hilo::create([
-            'foro_id' => $foroId,
-            'usuario_id' => Auth::id(),
-            'titulo' => $request->titulo,
-            'cuerpo' => $request->cuerpo
-        ]);
+        if ($hilo->usuario_id !== Auth::id()) {
+            return response()->json(['error' => 'No autorizado'], 403);
+        }
 
-        return response()->json($hilo, 201);
+        $hilo->delete();
+        return response()->json(['mensaje' => 'Hilo eliminado']);
     }
 }

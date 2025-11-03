@@ -14,21 +14,11 @@ export default function Home() {
         setLoading(true);
         setError(null);
         console.log("🔄 Iniciando carga de juegos destacados...");
-
-        // ✅ USAR RUTAS QUE SÍ EXISTEN EN TU BACKEND
-        // Opción 1: Obtener juegos populares (si existe la ruta)
-        // const data = await steamAPI.getJuegosPopulares(3);
-
-        // Opción 2: Obtener juegos gratuitos (si existe la ruta)
-        // const data = await steamAPI.getJuegosGratuitos(3);
-
-        // Opción 3: Obtener juegos normales con límite
         const data = await steamAPI.getJuegos({
           limite: 3,
           pagina: 1,
         });
 
-        // Manejar diferentes estructuras de respuesta
         const juegos = data.data || data.juegos || [];
 
         console.log("✅ Juegos encontrados:", juegos.length, juegos);
@@ -39,8 +29,6 @@ export default function Home() {
         }
       } catch (error) {
         console.error("❌ Error cargando juegos destacados:", error);
-
-        // Si falla, intentar con una ruta más básica
         try {
           console.log("🔄 Intentando carga alternativa...");
           const dataAlternativa = await steamAPI.getJuegos({ limite: 3 });
@@ -65,12 +53,10 @@ export default function Home() {
   }, []);
 
   const getSafeImage = (game) => {
-    // ✅ Los juegos vienen con background_image directo
     if (game?.background_image) {
       return game.background_image;
     }
 
-    // Si no, intentar con cover de IGDB
     if (game?.cover?.image_id) {
       return `https://images.igdb.com/igdb/image/upload/t_cover_big/${game.cover.image_id}.jpg`;
     }
@@ -81,12 +67,9 @@ export default function Home() {
         return `https://images.igdb.com/igdb/image/upload/t_cover_big/${imageId}.jpg`;
       }
     }
-
-    // Fallback
     return "/placeholder-game.jpg";
   };
 
-  // Función para obtener nombre seguro
   const getSafeName = (game) => {
     if (!game || !game.name) {
       return "Nombre no disponible";
@@ -94,9 +77,7 @@ export default function Home() {
     return game.name;
   };
 
-  // Función para obtener descripción segura
   const getSafeDescription = (game) => {
-    // IGDB usa 'summary', Steam usa 'short_description'
     if (game?.summary) {
       return game.summary.length > 120
         ? `${game.summary.substring(0, 120)}...`
@@ -131,11 +112,9 @@ export default function Home() {
   // Función para obtener géneros
   const getSafeGenres = (game) => {
     if (game?.genres && Array.isArray(game.genres)) {
-      // Si es array de objetos con name
       if (game.genres[0]?.name) {
         return game.genres.map((genre) => genre.name).slice(0, 2);
       }
-      // Si es array de strings
       return game.genres.slice(0, 2);
     }
 
@@ -170,25 +149,13 @@ export default function Home() {
           >
             Únete a la comunidad
           </Link>
-          <Link
-            to="/juegos" 
-            className="w-full bg-[#7B3FE4] hover:bg-[#A56BFA] text-white text-center py-2 px-4 rounded-lg transition-colors font-medium block"
-          >
-            Explorar Juegos
-          </Link>
-          <Link
-            to="/noticias"
-            className="bg-[#2D1B3A] hover:bg-[#3D2B4A] border border-[#7B3FE4] text-white font-semibold px-8 py-3 rounded-lg shadow-lg transition-transform hover:scale-105"
-          >
-            Ver Noticias
-          </Link>
         </div>
       </section>
 
       {/* Sección de características */}
       <section className="max-w-6xl mx-auto px-6 py-16 grid md:grid-cols-3 gap-10">
-        <div className="bg-[#2D1B3A]/80 rounded-2xl shadow-lg p-6 border border-[#7B3FE4]/30 hover:scale-[1.02] transition">
-          <div className="text-3xl mb-3">🎮</div>
+        <div className="bg-[#2D1B3A]/80 rounded-2xl p-6 border border-[#7B3FE4]/30 transform transition duration-300 hover:scale-105 hover:-translate-y-1 hover:shadow-[0_18px_40px_rgba(123,63,228,0.25)] hover:ring-4 hover:ring-[#7B3FE4]/10">
+          <div className="text-3xl flex place-content-center mb-3">🎮</div>
           <h3 className="text-2xl font-bold mb-3 text-[#A56BFA]">
             Catálogo de Juegos
           </h3>
@@ -198,7 +165,7 @@ export default function Home() {
           </p>
         </div>
 
-        <div className="bg-[#2D1B3A]/80 rounded-2xl shadow-lg p-6 border border-[#7B3FE4]/30 hover:scale-[1.02] transition">
+        <div className="bg-[#2D1B3A]/80 rounded-2xl p-6 border border-[#7B3FE4]/30 transform transition duration-300 hover:scale-105 hover:-translate-y-1 hover:shadow-[0_18px_40px_rgba(123,63,228,0.25)] hover:ring-4 hover:ring-[#7B3FE4]/10">
           <div className="text-3xl mb-3">📰</div>
           <h3 className="text-2xl font-bold mb-3 text-[#A56BFA]">
             Noticias Actualizadas
@@ -209,9 +176,9 @@ export default function Home() {
           </p>
         </div>
 
-        <div className="bg-[#2D1B3A]/80 rounded-2xl shadow-lg p-6 border border-[#7B3FE4]/30 hover:scale-[1.02] transition">
+        <div className="bg-[#2D1B3A]/80 rounded-2xl p-6 border border-[#7B3FE4]/30 transform transition duration-300 hover:scale-105 hover:-translate-y-1 hover:shadow-[0_18px_40px_rgba(255,195,60,0.20)] hover:ring-4 hover:ring-[#FFD34C]/10">
           <div className="text-3xl mb-3">⭐</div>
-          <h3 className="text-2xl font-bold mb-3 text{[#A56BFA]">
+          <h3 className="text-2xl font-bold mb-3 text-[#A56BFA]">
             Comunidad Activa
           </h3>
           <p className="text-[#A593C7]">

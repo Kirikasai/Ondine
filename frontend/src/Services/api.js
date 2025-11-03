@@ -55,7 +55,9 @@ async function fetchAPI(endpoint, options = {}) {
       }
     }
 
-    return await response.json();
+    const json = await response.json();
+    console.log('✅ API response for', url, json); // <-- debug log
+    return json;
   } catch (error) {
     console.error('❌ API Error:', error);
     
@@ -66,56 +68,174 @@ async function fetchAPI(endpoint, options = {}) {
     throw error;
   }
 }
+const handleResponse = async (response) => {
+  console.log('📡 Response status:', response.status);
+  
+  if (!response.ok) {
+    let errorMessage = `HTTP error! status: ${response.status}`;
+    try {
+      const errorData = await response.json();
+      errorMessage = errorData.error || errorData.message || errorMessage;
+    } catch (e) {
+      // Si no se puede parsear JSON, usar texto plano
+      const text = await response.text();
+      errorMessage = text || errorMessage;
+    }
+    throw new Error(errorMessage);
+  }
+  
+  try {
+    const data = await response.json();
+    console.log('📦 Response data:', data);
+    return data;
+  } catch (e) {
+    console.error('❌ Error parsing JSON:', e);
+    throw new Error('Invalid JSON response from server');
+  }
+};
 
 export const steamAPI = {
-  getJuegos: (params = {}) => {
+  getJuegos: async (params = {}) => {
+    console.log('🎮 INICIO: getJuegos', params);
+    
     const queryParams = new URLSearchParams();
     
-    Object.keys(params).forEach(key => {
+    // Agregar solo parámetros válidos
+    const validParams = ['pagina', 'limite', 'busqueda', 'genero', 'plataforma'];
+    validParams.forEach(key => {
       if (params[key] !== undefined && params[key] !== '' && params[key] !== null) {
         queryParams.append(key, params[key]);
       }
     });
     
     const queryString = queryParams.toString();
-    return fetchAPI(`/juegos${queryString ? '?' + queryString : ''}`);
+    const url = `${API_BASE}/juegos${queryString ? '?' + queryString : ''}`;
+    
+    console.log('🔗 URL final:', url);
+    
+    try {
+      const response = await fetch(url, {
+        method: 'GET',
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json',
+        },
+      });
+      
+      const data = await handleResponse(response);
+      console.log('✅ getJuegos exitoso:', {
+        juegosCount: data.juegos ? data.juegos.length : 0,
+        fuente: data.fuente,
+        mensaje: data.mensaje
+      });
+      
+      return data;
+    } catch (error) {
+      console.error('❌ Error en getJuegos:', error);
+      throw error;
+    }
   },
 
-  buscarJuegos: (termino, genero = 'todos') => {
+  buscarJuegos: async (termino) => {
     if (!termino || termino.trim() === '') {
-      return Promise.resolve({ data: [], total: 0 });
+      console.log('🔍 Búsqueda vacía, retornando vacío');
+      return { juegos: [], total: 0 };
     }
     
-    const queryParams = new URLSearchParams();
-    queryParams.append('q', termino);
-    if (genero !== 'todos') {
-      queryParams.append('genero', genero);
-    }
+    console.log('🔍 Buscando juegos:', termino);
     
-    return fetchAPI(`/juegos/buscar?${queryParams.toString()}`);
+    try {
+      const response = await fetch(`${API_BASE}/juegos/buscar?q=${encodeURIComponent(termino)}`, {
+        method: 'GET',
+        headers: {
+          'Accept': 'application/json',
+        },
+      });
+      
+      const data = await handleResponse(response);
+      console.log('✅ buscarJuegos exitoso:', {
+        resultados: data.juegos ? data.juegos.length : 0
+      });
+      
+      return data;
+    } catch (error) {
+      console.error('❌ Error en buscarJuegos:', error);
+      throw error;
+    }
   },
 
-  getDetallesJuego: (appId) => {
-    if (!appId) {
-      throw new Error('appId es requerido');
+  getDetallesJuego: async (id) => {
+    if (!id) {
+      throw new Error('ID es requerido');
     }
-    return fetchAPI(`/juegos/${appId}`);
+    
+    console.log('🔍 Obteniendo detalles del juego:', id);
+    
+    try {
+      const response = await fetch(`${API_BASE}/juegos/${id}`, {
+        method: 'GET',
+        headers: {
+          'Accept': 'application/json',
+        },
+      });
+      
+      return handleResponse(response);
+    } catch (error) {
+      console.error('❌ Error en getDetallesJuego:', error);
+      throw error;
+    }
   },
   
-  getJuegosPorGenero: (genero) => {
-    if (!genero) {
-      throw new Error('género es requerido');
+  getGeneros: async () => {
+    console.log('📋 Solicitando géneros...');
+    
+    try {
+      const response = await fetch(`${API_BASE}/generos`, {
+        method: 'GET',
+        headers: {
+          'Accept': 'application/json',
+        },
+      });
+      
+      const data = await handleResponse(response);
+      console.log('✅ getGeneros exitoso:', {
+        total: data.total,
+        generosCount: data.generos ? data.generos.length : 0
+      });
+      
+      return data;
+    } catch (error) {
+      console.error('❌ Error en getGeneros:', error);
+      throw error;
     }
-    return fetchAPI(`/juegos/genero/${encodeURIComponent(genero)}`);
   },
-  
-  getGeneros: () => {
-    return fetchAPI('/generos');
+
+  getPlataformas: async () => {
+    console.log('🖥️ Solicitando plataformas...');
+    
+    try {
+      const response = await fetch(`${API_BASE}/plataformas`, {
+        method: 'GET',
+        headers: {
+          'Accept': 'application/json',
+        },
+      });
+      
+      const data = await handleResponse(response);
+      console.log('✅ getPlataformas exitoso:', {
+        total: data.total,
+        plataformasCount: data.plataformas ? data.plataformas.length : 0
+      });
+      
+      return data;
+    } catch (error) {
+      console.error('❌ Error en getPlataformas:', error);
+      throw error;
+    }
   }
 };
 
 export const newsAPI = {
-
   getNoticias: (params = {}) => {
     const queryParams = new URLSearchParams();
     
@@ -126,12 +246,13 @@ export const newsAPI = {
     });
     
     const queryString = queryParams.toString();
-    return fetchAPI(`/noticias${queryString ? '?' + queryString : ''}`);
+    return fetch(`${API_BASE}/noticias${queryString ? '?' + queryString : ''}`)
+      .then(response => response.json());
   },
 
   buscarNoticias: (termino, categoria = null) => {
     if (!termino || termino.trim() === '') {
-      return Promise.resolve({ data: [], total: 0 });
+      return Promise.resolve({ noticias: [], total: 0 });
     }
     
     const queryParams = new URLSearchParams();
@@ -140,29 +261,18 @@ export const newsAPI = {
       queryParams.append('categoria', categoria);
     }
     
-    return fetchAPI(`/noticias/buscar?${queryParams.toString()}`);
-  },
-
-  getNoticiasPorCategoria: (categoria, pagina = 1, limite = 10) => {
-    if (!categoria) {
-      throw new Error('categoría es requerida');
-    }
-    return fetchAPI(`/noticias/categoria/${encodeURIComponent(categoria)}?pagina=${pagina}&limite=${limite}`);
-  },
-  
-  getDetallesNoticia: (id) => {
-    if (!id) {
-      throw new Error('id es requerido');
-    }
-    return fetchAPI(`/noticias/${id}`);
+    return fetch(`${API_BASE}/noticias/buscar?${queryParams.toString()}`)
+      .then(response => response.json());
   },
 
   getCategorias: () => {
-    return fetchAPI('/noticias/categorias');
+    return fetch(`${API_BASE}/noticias/categorias`)
+      .then(response => response.json());
   },
 
   getNoticiasRecientes: (limite = 5) => {
-    return fetchAPI(`/noticias/recientes?limite=${limite}`);
+    return fetch(`${API_BASE}/noticias/recientes?limite=${limite}`)
+      .then(response => response.json());
   }
 };
 

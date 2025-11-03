@@ -1,5 +1,4 @@
 <?php
-
 namespace App\Http\Controllers;
 
 use App\Models\Foro;
@@ -10,16 +9,28 @@ use Illuminate\Support\Facades\Auth;
 
 class ForoController extends Controller
 {
-     public function index()
+    // Público: Ver todos los foros
+    public function index()
     {
         return Foro::all();
     }
 
-    public function hilos($foroId)
+    // Público: Ver foro específico
+    public function show($id)
     {
-        return Hilo::where('foro_id', $foroId)->with(['usuario', 'respuestas'])->get();
+        return Foro::with(['hilos.usuario', 'hilos.respuestas'])->findOrFail($id);
     }
 
+    // Público: Ver hilos de un foro
+    public function hilos($foroId)
+    {
+        return Hilo::where('foro_id', $foroId)
+                   ->with(['usuario', 'respuestas.usuario'])
+                   ->orderBy('creado_en', 'desc')
+                   ->get();
+    }
+
+    // Protegido: Crear hilo
     public function crearHilo(Request $request, $foroId)
     {
         $request->validate([
@@ -37,6 +48,7 @@ class ForoController extends Controller
         return response()->json($hilo, 201);
     }
 
+    // Protegido: Responder a hilo
     public function responder(Request $request, $hiloId)
     {
         $request->validate(['cuerpo' => 'required|string']);

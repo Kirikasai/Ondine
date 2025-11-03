@@ -1,103 +1,84 @@
 <?php
-use Illuminate\Support\Facades\Http;
-use Illuminate\Support\Facades\Log;
-use Illuminate\Http\Request;
+// routes/api.php
 use Illuminate\Support\Facades\Route;
-use Illuminate\Http\Response;
 use App\Http\Controllers\UsuarioController;
 use App\Http\Controllers\ForoController;
 use App\Http\Controllers\BlogController;
 use App\Http\Controllers\GuiaController;
 use App\Http\Controllers\TransmisionController;
 use App\Http\Controllers\ClanController;
-use App\Http\Controllers\ReputacionController;
-use App\Http\Controllers\LogroController;
 use App\Http\Controllers\EventoController;
+use App\Http\Controllers\HiloController;
+use App\Http\Controllers\RespuestaController;
 use App\Http\Controllers\IgdbController;
 use App\Http\Controllers\NoticiasController;
 
+// Rutas públicas (sin autenticación)
 Route::get('/test-conexion', function () {
-    try {
-        // Test 1: Google (siempre disponible)
-        $googleResponse = Http::timeout(10)->get('https://www.google.com');
-
-        // Test 2: API pública genérica
-        $apiResponse = Http::timeout(10)->get('https://jsonplaceholder.typicode.com/posts/1');
-
-        // Test 3: Steam API directamente
-        $steamResponse = Http::timeout(10)->get('https://api.steampowered.com/ISteamApps/GetAppList/v2/');
-
-        return response()->json([
-            'google_status' => $googleResponse->status(),
-            'api_publica_status' => $apiResponse->status(),
-            'api_publica_data' => $apiResponse->successful() ? $apiResponse->json() : 'Error',
-            'steam_status' => $steamResponse->status(),
-            'steam_body' => $steamResponse->successful() ? 'Conexión exitosa' : $steamResponse->body(),
-        ]);
-
-    } catch (\Exception $e) {
-        return response()->json([
-            'error' => 'Excepción atrapada',
-            'message' => $e->getMessage(),
-            'type' => get_class($e)
-        ], 500);
-    }
+    return response()->json(['message' => 'API funcionando']);
 });
 
-function corsResponse($data) {
-    return response()->json($data)
-        ->header('Access-Control-Allow-Origin', '*')
-        ->header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS')
-        ->header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With');
-}
+// Auth routes
+Route::post('/auth/register', [UsuarioController::class, 'registro']);
+Route::post('/auth/login', [UsuarioController::class, 'login']);
 
-// Rutas IGDB
+// Rutas públicas de contenido (lectura)
+Route::get('/blogs', [BlogController::class, 'index']);
+Route::get('/blogs/{id}', [BlogController::class, 'show']);
+Route::get('/foros', [ForoController::class, 'index']);
+Route::get('/foros/{id}', [ForoController::class, 'show']);
+Route::get('/foros/{foroId}/hilos', [ForoController::class, 'hilos']);
+Route::get('/hilos/{id}', [HiloController::class, 'show']);
+Route::get('/hilos/{hiloId}/respuestas', [RespuestaController::class, 'index']);
+Route::get('/eventos', [EventoController::class, 'index']);
+Route::get('/eventos/{id}', [EventoController::class, 'show']);
+Route::get('/guias', [GuiaController::class, 'index']);
+Route::get('/guias/{id}', [GuiaController::class, 'show']);
+Route::get('/clanes', [ClanController::class, 'index']);
+Route::get('/clanes/{id}', [ClanController::class, 'show']);
+
+// Rutas IGDB (públicas)
 Route::get('/juegos', [IgdbController::class, 'getJuegos']);
 Route::get('/juegos/buscar', [IgdbController::class, 'buscarJuegos']);
 Route::get('/juegos/{id}', [IgdbController::class, 'getDetallesJuego']);
 Route::get('/generos', [IgdbController::class, 'getGeneros']);
 Route::get('/plataformas', [IgdbController::class, 'getPlataformas']);
 Route::get('/juegos-populares', [IgdbController::class, 'getJuegosPopulares']);
-Route::get('/juegos-recientes', [IgdbController::class, 'getJuegosRecientes']);
-Route::get('/igdb/verificar', [IgdbController::class, 'verificarConexion']);
 
-// Mantener noticias
+// Rutas noticias (públicas)
 Route::get('/noticias', [NoticiasController::class, 'getNoticias']);
+Route::get('/noticias/buscar', [NoticiasController::class, 'buscarNoticias']);
+Route::get('/noticias/categorias', [NoticiasController::class, 'getCategorias']);
 
-Route::post('/registro', [UsuarioController::class, 'registro']);
-Route::post('/login', [UsuarioController::class, 'login']);
-
-
-
-Route::middleware('auth:sanctum')->post('/logout', [UsuarioController::class, 'logout']);
-
+// Rutas que requieren autenticación
 Route::middleware('auth:sanctum')->group(function () {
+    // Auth
+    Route::post('/auth/logout', [UsuarioController::class, 'logout']);
+    Route::get('/auth/user', [UsuarioController::class, 'user']);
 
-    Route::get('/foros', [ForoController::class, 'index']);
-    Route::get('/foros/{id}/hilos', [ForoController::class, 'hilos']);
-    Route::post('/foros/{id}/hilos', [ForoController::class, 'crearHilo']);
-    Route::post('/hilos/{id}/responder', [ForoController::class, 'responder']);
-
-    Route::get('/blogs', [BlogController::class, 'index']);
+    // Creación de contenido
     Route::post('/blogs', [BlogController::class, 'store']);
+    Route::put('/blogs/{id}', [BlogController::class, 'update']);
+    Route::delete('/blogs/{id}', [BlogController::class, 'destroy']);
 
-    Route::get('/guias', [GuiaController::class, 'index']);
-    Route::post('/guias', [GuiaController::class, 'store']);
+    Route::post('/foros/{foroId}/hilos', [ForoController::class, 'crearHilo']);
+    Route::post('/hilos/{hiloId}/responder', [ForoController::class, 'responder']);
+    Route::delete('/hilos/{id}', [HiloController::class, 'destroy']);
+    Route::delete('/respuestas/{id}', [RespuestaController::class, 'destroy']);
 
-    Route::get('/transmisiones', [TransmisionController::class, 'index']);
-    Route::post('/transmisiones', [TransmisionController::class, 'store']);
-
-    Route::get('/clanes', [ClanController::class, 'index']);
-    Route::post('/clanes', [ClanController::class, 'store']);
-    Route::post('/clanes/{id}/unirse', [ClanController::class, 'unirse']);
-
-    Route::get('/reputacion', [ReputacionController::class, 'logs']);
-    Route::post('/reputacion/sumar', [ReputacionController::class, 'sumarPuntos']);
-
-    Route::get('/logros', [LogroController::class, 'index']);
-    Route::post('/logros/asignar', [LogroController::class, 'asignar']);
-
-    Route::get('/eventos', [EventoController::class, 'index']);
     Route::post('/eventos', [EventoController::class, 'store']);
     Route::post('/eventos/{id}/asistir', [EventoController::class, 'asistir']);
+    Route::delete('/eventos/{id}', [EventoController::class, 'destroy']);
+
+    Route::post('/guias', [GuiaController::class, 'store']);
+    Route::put('/guias/{id}', [GuiaController::class, 'update']);
+    Route::delete('/guias/{id}', [GuiaController::class, 'destroy']);
+
+    Route::post('/clanes', [ClanController::class, 'store']);
+    Route::post('/clanes/{id}/unirse', [ClanController::class, 'unirse']);
+    Route::delete('/clanes/{id}', [ClanController::class, 'destroy']);
+
+    Route::post('/transmisiones', [TransmisionController::class, 'store']);
+    Route::put('/transmisiones/{id}', [TransmisionController::class, 'update']);
+    Route::delete('/transmisiones/{id}', [TransmisionController::class, 'destroy']);
 });

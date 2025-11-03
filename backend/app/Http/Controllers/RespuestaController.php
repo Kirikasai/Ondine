@@ -1,5 +1,4 @@
 <?php
-
 namespace App\Http\Controllers;
 
 use App\Models\Respuesta;
@@ -8,17 +7,12 @@ use Illuminate\Support\Facades\Auth;
 
 class RespuestaController extends Controller
 {
-    public function store(Request $request, $hiloId)
+    public function index($hiloId)
     {
-        $request->validate(['cuerpo' => 'required|string']);
-
-        $respuesta = Respuesta::create([
-            'hilo_id' => $hiloId,
-            'usuario_id' => Auth::id(),
-            'cuerpo' => $request->cuerpo
-        ]);
-
-        return response()->json($respuesta, 201);
+        return Respuesta::where('hilo_id', $hiloId)
+                       ->with('usuario')
+                       ->orderBy('creado_en', 'asc')
+                       ->get();
     }
 
     public function destroy($id)
@@ -30,7 +24,6 @@ class RespuestaController extends Controller
         }
 
         $respuesta->delete();
-
         return response()->json(['mensaje' => 'Respuesta eliminada']);
     }
 }

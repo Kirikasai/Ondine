@@ -1,4 +1,3 @@
-// components/Noticias.jsx
 import { useEffect, useState, useCallback } from "react";
 import { newsAPI } from "../services/api";
 
@@ -19,7 +18,6 @@ export default function Noticias() {
     cargarCategorias();
   }, []);
 
-  // ✅ Usar useCallback para memoizar la función y evitar recreaciones innecesarias
   const cargarNoticias = useCallback(async () => {
     try {
       setLoading(true);
@@ -33,11 +31,10 @@ export default function Noticias() {
         limite: 9
       });
       
-      // Ajustar según la estructura de respuesta de la API
-      const noticiasData = data.data || data.noticias || [];
-      const total = data.total || data.meta?.total || 0;
-      const paginaActual = data.pagina || data.meta?.current_page || 1;
-      const totalPaginas = data.totalPaginas || data.meta?.last_page || 1;
+      const noticiasData = data.noticias || data.data || [];
+      const total = data.paginacion?.total_noticias || data.total || 0;
+      const paginaActual = data.paginacion?.pagina_actual || data.pagina || 1;
+      const totalPaginas = data.paginacion?.total_paginas || data.totalPaginas || 1;
       
       setNoticias(noticiasData);
       setPaginacion({
@@ -55,26 +52,31 @@ export default function Noticias() {
     } finally {
       setLoading(false);
     }
-  }, [categoria, paginacion.pagina]); // ✅ Dependencias incluidas
+  }, [categoria, paginacion.pagina]);
 
-  // Cargar noticias cuando cambien los filtros o página
   useEffect(() => {
     cargarNoticias();
-  }, [cargarNoticias]); // ✅ Ahora solo depende de cargarNoticias
+  }, [cargarNoticias]);
 
   const cargarCategorias = async () => {
     try {
       const data = await newsAPI.getCategorias();
-      setCategoriasDisponibles(data.categorias || [
-        "videojuegos", "esports", "playstation", "xbox", "nintendo", 
-        "pc gaming", "realidad virtual", "mobile gaming", "indie games"
-      ]);
+      
+      if (data.categorias && Array.isArray(data.categorias)) {
+        const categoriasIds = data.categorias.map(cat => cat.id);
+        setCategoriasDisponibles(categoriasIds);
+      } else {
+        
+        setCategoriasDisponibles([
+          "videojuegos", "esports", "playstation", "xbox", "nintendo", 
+          "pc-gaming", "mobile-gaming", "realidad-virtual"
+        ]);
+      }
     } catch (err) {
       console.error('Error cargando categorías:', err);
-      // Categorías por defecto si falla la API
       setCategoriasDisponibles([
         "videojuegos", "esports", "playstation", "xbox", "nintendo", 
-        "pc gaming", "realidad virtual", "mobile gaming", "indie games"
+        "pc-gaming", "mobile-gaming", "realidad-virtual"
       ]);
     }
   };
@@ -90,8 +92,6 @@ export default function Noticias() {
     }
   };
 
-  // ... resto del código (funciones helper y JSX) se mantiene igual
-  // Función para obtener nombre de categoría formateado
   const getCategoriaNombre = (catId) => {
     const categoriasMap = {
       "videojuegos": "🎮 Videojuegos",
@@ -99,13 +99,15 @@ export default function Noticias() {
       "playstation": "🎯 PlayStation",
       "xbox": "🟩 Xbox",
       "nintendo": "🔴 Nintendo",
-      "pc gaming": "💻 PC Gaming",
-      "realidad virtual": "🥽 Realidad Virtual",
-      "mobile gaming": "📱 Mobile Gaming",
-      "indie games": "🎨 Indie Games"
+      "pc-gaming": "💻 PC Gaming",
+      "mobile-gaming": "📱 Mobile Gaming",
+      "realidad-virtual": "🥽 Realidad Virtual",
+      "gaming": "🎮 Gaming General"
     };
+
+    const categoriaId = typeof catId === 'string' ? catId : String(catId);
     
-    return categoriasMap[catId] || `📰 ${catId.charAt(0).toUpperCase() + catId.slice(1)}`;
+    return categoriasMap[categoriaId] || `📰 ${categoriaId.charAt(0).toUpperCase() + categoriaId.slice(1)}`;
   };
 
   // Función para formatear fecha
@@ -136,7 +138,7 @@ export default function Noticias() {
     }
   };
 
-  // Función para obtener imagen segura
+  // Función para obtener imagen 
   const getSafeImage = (noticia) => {
     if (noticia.urlToImage && noticia.urlToImage !== "null") {
       return noticia.urlToImage;
@@ -147,17 +149,17 @@ export default function Noticias() {
     return "https://images.unsplash.com/photo-1550745165-9bc0b252726f?w=400&h=200&fit=crop";
   };
 
-  // Función para obtener título seguro
+  // Función para obtener título 
   const getSafeTitle = (noticia) => {
     return noticia.title || "Título no disponible";
   };
 
-  // Función para obtener descripción segura
+  // Función para obtener descripción 
   const getSafeDescription = (noticia) => {
     return noticia.description || noticia.content || "Descripción no disponible";
   };
 
-  // Función para obtener fuente segura
+  // Función para obtener fuente 
   const getSafeSource = (noticia) => {
     if (noticia.source?.name) {
       return noticia.source.name;
@@ -168,7 +170,7 @@ export default function Noticias() {
     return "Fuente";
   };
 
-  // Función para obtener URL segura
+  // Función para obtener URL 
   const getSafeUrl = (noticia) => {
     return noticia.url || noticia.article_url || "#";
   };
@@ -276,7 +278,7 @@ export default function Noticias() {
                   <div className="p-6 flex-grow flex flex-col">
                     <div className="mb-3">
                       <span className="text-[#A56BFA] text-sm font-medium">
-                        {categoria.toUpperCase()}
+                        {getCategoriaNombre(categoria).toUpperCase()}
                       </span>
                     </div>
 

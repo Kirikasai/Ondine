@@ -1,4 +1,3 @@
-// services/apiServer.js
 const API_BASE = 'http://localhost:8000/api';
 
 const REQUEST_TIMEOUT = 10000;

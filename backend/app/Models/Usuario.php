@@ -1,5 +1,5 @@
 <?php
-
+// app/Models/Usuario.php
 namespace App\Models;
 
 use Illuminate\Foundation\Auth\User as Authenticatable;
@@ -11,6 +11,9 @@ class Usuario extends Authenticatable
     use HasApiTokens, Notifiable;
 
     protected $table = 'usuarios';
+    public $timestamps = false; // ✅ Desactivar timestamps automáticos
+    const CREATED_AT = 'creado_en';
+    const UPDATED_AT = null;
 
     protected $fillable = [
         'nombre_usuario',
@@ -24,16 +27,10 @@ class Usuario extends Authenticatable
         'remember_token'
     ];
 
-    public function reputaciones()
+    public function getAuthPassword()
     {
-        return $this->hasMany(RegistroReputacion::class, 'usuario_id');
+        return $this->contrasena;
     }
 
-    public function logros()
-    {
-        return $this->belongsToMany(Logro::class, 'logros_usuario', 'usuario_id', 'logro_id')
-                    ->withPivot('desbloqueado_en');
-    }
+    // Relaciones...
 }
-
-

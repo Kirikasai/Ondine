@@ -1,5 +1,5 @@
 <?php
-
+// app/Models/MiembroClan.php
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
@@ -7,7 +7,15 @@ use Illuminate\Database\Eloquent\Model;
 class MiembroClan extends Model
 {
     protected $table = 'miembros_clan';
-    protected $fillable = ['clan_id', 'usuario_id', 'rol'];
+    public $timestamps = false; 
+    const CREATED_AT = 'unido_en';
+    const UPDATED_AT = null;
+
+    protected $fillable = [
+        'clan_id',
+        'usuario_id',
+        'rol'
+    ];
 
     public function clan()
     {

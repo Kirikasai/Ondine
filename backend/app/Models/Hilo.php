@@ -1,5 +1,4 @@
 <?php
-
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
@@ -7,7 +6,16 @@ use Illuminate\Database\Eloquent\Model;
 class Hilo extends Model
 {
     protected $table = 'hilos';
-    protected $fillable = ['foro_id', 'usuario_id', 'titulo', 'cuerpo'];
+    public $timestamps = false;
+    const CREATED_AT = 'creado_en';
+    const UPDATED_AT = null;
+
+    protected $fillable = [
+        'foro_id',
+        'usuario_id',
+        'titulo',
+        'cuerpo'
+    ];
 
     public function foro()
     {
@@ -23,5 +31,4 @@ class Hilo extends Model
     {
         return $this->hasMany(Respuesta::class, 'hilo_id');
     }
-
 }

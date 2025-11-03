@@ -1,5 +1,5 @@
 <?php
-
+// app/Models/Respuesta.php
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
@@ -7,7 +7,15 @@ use Illuminate\Database\Eloquent\Model;
 class Respuesta extends Model
 {
     protected $table = 'respuestas';
-    protected $fillable = ['hilo_id', 'usuario_id', 'cuerpo'];
+    public $timestamps = false;
+    const CREATED_AT = 'creado_en';
+    const UPDATED_AT = null;
+
+    protected $fillable = [
+        'hilo_id',
+        'usuario_id',
+        'cuerpo'
+    ];
 
     public function hilo()
     {
