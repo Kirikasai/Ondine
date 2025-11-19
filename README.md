@@ -54,14 +54,9 @@ npm create vite@latest <nombre-del-proyecto> --template react
 # Credenciales IGDB (obtener en https://api.igdb.com/)
 # Credenciales News Api (obtener en https://newsapi.org)
 ```
-## Web
-**Inicio**
-https://github.com/user-attachments/assets/0a35eeae-44ab-4ac9-b573-4295c245bd54
 
-**Juegos**
-https://github.com/user-attachments/assets/dfea8b2b-0471-4ea3-a999-e93dfe90b054
 
-**Noticias**
+
 
 
 
