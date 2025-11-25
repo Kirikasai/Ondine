@@ -1,5 +1,4 @@
 <?php
-// app/Models/Respuesta.php
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
@@ -7,7 +6,8 @@ use Illuminate\Database\Eloquent\Model;
 class Respuesta extends Model
 {
     protected $table = 'respuestas';
-    public $timestamps = false;
+
+    public $timestamps = true;
     const CREATED_AT = 'creado_en';
     const UPDATED_AT = null;
 
@@ -15,6 +15,10 @@ class Respuesta extends Model
         'hilo_id',
         'usuario_id',
         'cuerpo'
+    ];
+
+    protected $casts = [
+        'creado_en' => 'datetime'
     ];
 
     public function hilo()

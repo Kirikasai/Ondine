@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback } from "react";
-import { steamAPI } from "../services/api";
+import { giantbombAPI } from "../Services/api";
 
 export default function Juegos() {
   const [juegos, setJuegos] = useState([]);
@@ -23,77 +23,77 @@ export default function Juegos() {
   }, []);
 
   const cargarJuegos = useCallback(async () => {
-  try {
-    setLoading(true);
-    setError(null);
+    try {
+      setLoading(true);
+      setError(null);
 
-    console.log('🎮 Iniciando carga de juegos...');
-    console.log('📋 Filtros actuales:', {
-      searchTerm,
-      generoSeleccionado,
-      plataformaSeleccionada,
-      pagina: paginacion.pagina
-    });
+      console.log('🎮 Iniciando carga de juegos...');
+      console.log('📋 Filtros actuales:', {
+        searchTerm,
+        generoSeleccionado,
+        plataformaSeleccionada,
+        pagina: paginacion.pagina
+      });
 
-    let data;
+      let data;
 
-    // Si hay término de búsqueda, usar la función de búsqueda
-    if (searchTerm.trim()) {
-      console.log('🔍 Usando búsqueda:', searchTerm);
-      data = await steamAPI.buscarJuegos(searchTerm);
-    }
-    // Caso general: obtener todos los juegos con paginación
-    else {
-      const params = {
-        pagina: paginacion.pagina,
-        limite: 20,
-      };
-
-      // Agregar filtros solo si no son los valores por defecto
-      if (generoSeleccionado !== "todos") {
-        params.genero = generoSeleccionado;
+      // Si hay término de búsqueda, usar la función de búsqueda
+      if (searchTerm.trim()) {
+        console.log('🔍 Usando búsqueda:', searchTerm);
+        data = await giantbombAPI.buscarJuegos(searchTerm);
       }
+      // Caso general: obtener todos los juegos con paginación
+      else {
+        const params = {
+          pagina: paginacion.pagina,
+          limite: 20,
+        };
+
+        // Agregar filtros solo si no son los valores por defecto
+        if (generoSeleccionado !== "todos") {
+          params.genero = generoSeleccionado;
+        }
+        
+        if (plataformaSeleccionada !== "todas") {
+          params.plataforma = plataformaSeleccionada;
+        }
+
+        console.log('📊 Parámetros para API:', params);
+        data = await giantbombAPI.getJuegos(params);
+      }
+
+      console.log('📦 Datos recibidos de API:', data);
+
+      // ✅ Manejar diferentes estructuras de respuesta
+      const juegosData = data.juegos || data.data || [];
+      const total = data.paginacion?.total_juegos || data.total || data.meta?.total || 0;
+      const paginaActual = data.paginacion?.pagina_actual || data.pagina || data.meta?.current_page || 1;
+      const totalPaginas = data.paginacion?.total_paginas || data.totalPaginas || data.meta?.last_page || Math.ceil(total / 20);
+
+      console.log('📊 Estadísticas:', {
+        juegosRecibidos: juegosData.length,
+        total,
+        paginaActual,
+        totalPaginas
+      });
+
+      setJuegos(juegosData);
+      setPaginacion({
+        pagina: paginaActual,
+        total: total,
+        totalPaginas: totalPaginas,
+      });
+
+      console.log(`✅ ${juegosData.length} juegos cargados desde GiantBomb`);
       
-      if (plataformaSeleccionada !== "todas") {
-        params.plataforma = plataformaSeleccionada;
-      }
-
-      console.log('📊 Parámetros para API:', params);
-      data = await steamAPI.getJuegos(params);
+    } catch (err) {
+      console.error("❌ Error cargando juegos:", err);
+      setError(err.message || "No se pudieron cargar los juegos");
+      setJuegos([]);
+    } finally {
+      setLoading(false);
     }
-
-    console.log('📦 Datos recibidos de API:', data);
-
-    // ✅ Manejar diferentes estructuras de respuesta
-    const juegosData = data.juegos || data.data || [];
-    const total = data.paginacion?.total_juegos || data.total || data.meta?.total || 1000;
-    const paginaActual = data.paginacion?.pagina_actual || data.pagina || data.meta?.current_page || 1;
-    const totalPaginas = data.paginacion?.total_paginas || data.totalPaginas || data.meta?.last_page || Math.ceil(total / 20);
-
-    console.log('📊 Estadísticas:', {
-      juegosRecibidos: juegosData.length,
-      total,
-      paginaActual,
-      totalPaginas
-    });
-
-    setJuegos(juegosData);
-    setPaginacion({
-      pagina: paginaActual,
-      total: total,
-      totalPaginas: totalPaginas,
-    });
-
-    console.log(`✅ ${juegosData.length} juegos cargados desde IGDB`);
-    
-  } catch (err) {
-    console.error("❌ Error cargando juegos:", err);
-    setError(err.message || "No se pudieron cargar los juegos");
-    setJuegos([]);
-  } finally {
-    setLoading(false);
-  }
-}, [searchTerm, generoSeleccionado, plataformaSeleccionada, paginacion.pagina]);
+  }, [searchTerm, generoSeleccionado, plataformaSeleccionada, paginacion.pagina]);
 
   // Cargar juegos cuando cambien los filtros o página
   useEffect(() => {
@@ -102,7 +102,7 @@ export default function Juegos() {
 
   const cargarGeneros = async () => {
     try {
-      const data = await steamAPI.getGeneros();
+      const data = await giantbombAPI.getGeneros();
       console.log("📊 Datos de géneros recibidos:", data);
       
       let generos = [];
@@ -127,23 +127,34 @@ export default function Juegos() {
       
     } catch (err) {
       console.error('Error cargando géneros:', err);
-
+      // Géneros por defecto de GiantBomb
       setGenerosDisponibles([
-        { id: "action", nombre: "Action" },
-        { id: "adventure", nombre: "Adventure" },
-        { id: "rpg", nombre: "RPG" },
-        { id: "strategy", nombre: "Strategy" },
-        { id: "simulation", nombre: "Simulation" },
-        { id: "sports", nombre: "Sports" },
-        { id: "racing", nombre: "Racing" },
-        { id: "indie", nombre: "Indie" }
+        { id: "2", nombre: "Point and Click" },
+        { id: "4", nombre: "Fighting" },
+        { id: "5", nombre: "Shooter" },
+        { id: "7", nombre: "Music" },
+        { id: "8", nombre: "Platform" },
+        { id: "9", nombre: "Puzzle" },
+        { id: "10", nombre: "Racing" },
+        { id: "11", nombre: "Real Time Strategy (RTS)" },
+        { id: "12", nombre: "Role-playing (RPG)" },
+        { id: "13", nombre: "Simulator" },
+        { id: "14", nombre: "Sport" },
+        { id: "15", nombre: "Strategy" },
+        { id: "16", nombre: "Turn-based strategy (TBS)" },
+        { id: "24", nombre: "Tactical" },
+        { id: "25", nombre: "Hack and slash/Beat 'em up" },
+        { id: "26", nombre: "Quiz/Trivia" },
+        { id: "31", nombre: "Adventure" },
+        { id: "32", nombre: "Indie" },
+        { id: "33", nombre: "Arcade" }
       ]);
     }
   };
 
   const cargarPlataformas = async () => {
     try {
-      const data = await steamAPI.getPlataformas();
+      const data = await giantbombAPI.getPlataformas();
       console.log("🎮 Datos de plataformas recibidos:", data);
       
       let plataformas = [];
@@ -156,7 +167,6 @@ export default function Juegos() {
         plataformas = data.plataformas;
       }
       
-
       const plataformasProcesadas = plataformas.map(plat => {
         if (typeof plat === 'string') return { id: plat, nombre: plat };
         if (plat?.name) return { id: plat.id, nombre: plat.name };
@@ -169,13 +179,16 @@ export default function Juegos() {
       
     } catch (err) {
       console.error('Error cargando plataformas:', err);
-
+      // Plataformas por defecto de GiantBomb
       setPlataformasDisponibles([
-        { id: "4", nombre: "PC" },
-        { id: "187", nombre: "PlayStation 5" },
-        { id: "18", nombre: "PlayStation 4" },
-        { id: "1", nombre: "Xbox Series X" },
-        { id: "7", nombre: "Nintendo Switch" }
+        { id: "94", nombre: "PC" },
+        { id: "145", nombre: "PlayStation 5" },
+        { id: "146", nombre: "PlayStation 4" },
+        { id: "162", nombre: "Xbox Series X" },
+        { id: "163", nombre: "Xbox One" },
+        { id: "157", nombre: "Nintendo Switch" },
+        { id: "139", nombre: "iOS" },
+        { id: "34", nombre: "Android" }
       ]);
     }
   };
@@ -202,26 +215,25 @@ export default function Juegos() {
   };
 
   const getSafeImage = (game) => {
-
+    // GiantBomb usa image.medium_url o image.small_url
     if (game?.background_image) {
       return game.background_image;
     }
     
-
-    if (game?.cover?.image_id) {
-      return `https://images.igdb.com/igdb/image/upload/t_cover_big/${game.cover.image_id}.jpg`;
+    if (game?.image?.medium_url) {
+      return game.image.medium_url;
     }
     
-    if (game?.cover?.url) {
-      const imageId = game.cover.url.split('/').pop()?.replace('.jpg', '');
-      if (imageId) {
-        return `https://images.igdb.com/igdb/image/upload/t_cover_big/${imageId}.jpg`;
-      }
+    if (game?.image?.small_url) {
+      return game.image.small_url;
+    }
+    
+    if (game?.cover?.image_id) {
+      return `https://images.igdb.com/igdb/image/upload/t_cover_big/${game.cover.image_id}.jpg`;
     }
 
     return "https://images.unsplash.com/photo-1550745165-9bc0b252726f?w=400&h=200&fit=crop";
   };
-
 
   const getSafeName = (game) => {
     if (!game || !game.name) {
@@ -230,9 +242,13 @@ export default function Juegos() {
     return game.name;
   };
 
-
   const getSafeDescription = (game) => {
-
+    // GiantBomb usa 'deck' en lugar de 'summary'
+    if (game?.deck) {
+      return game.deck.length > 120 
+        ? `${game.deck.substring(0, 120)}...` 
+        : game.deck;
+    }
     if (game?.summary) {
       return game.summary.length > 120 
         ? `${game.summary.substring(0, 120)}...` 
@@ -243,7 +259,6 @@ export default function Juegos() {
     }
     return "Descripción no disponible";
   };
-
 
   const getGenerosJuego = (game) => {
     if (!game || !game.genres || game.genres.length === 0) {
@@ -282,20 +297,38 @@ export default function Juegos() {
   };
 
   const getRating = (game) => {
-    if (!game || !game.rating) {
-      return "N/A";
-    }
-    return game.rating.toFixed(1);
+    // GiantBomb no tiene rating como IGDB
+    return "N/A";
   };
 
   const getReleaseDate = (game) => {
-    if (!game || !game.released) {
-      return "Próximamente";
+    // GiantBomb usa original_release_date
+    if (game?.released) {
+      return new Date(game.released).toLocaleDateString('es-ES', {
+        year: 'numeric',
+        month: 'short'
+      });
     }
-    return new Date(game.released).toLocaleDateString('es-ES', {
-      year: 'numeric',
-      month: 'short'
-    });
+    
+    if (game?.original_release_date) {
+      return new Date(game.original_release_date).toLocaleDateString('es-ES', {
+        year: 'numeric',
+        month: 'short'
+      });
+    }
+    
+    return "Próximamente";
+  };
+
+  const handleVerDetalles = (game) => {
+    // GiantBomb usa site_detail_url
+    if (game?.giantbomb_url) {
+      window.open(game.giantbomb_url, '_blank');
+    } else if (game?.site_detail_url) {
+      window.open(game.site_detail_url, '_blank');
+    } else {
+      window.open('https://www.giantbomb.com', '_blank');
+    }
   };
 
   return (
@@ -307,7 +340,7 @@ export default function Juegos() {
             Catálogo de Videojuegos
           </h1>
           <p className="text-lg text-[#A593C7] max-w-2xl mx-auto">
-            Explora miles de juegos con información detallada de IGDB
+            Explora miles de juegos con información detallada de GiantBomb
           </p>
         </div>
 
@@ -370,12 +403,12 @@ export default function Juegos() {
         <div className="text-center mb-8">
           <p className="text-[#A593C7]">
             {loading ? (
-              "Cargando juegos desde IGDB..."
+              "Cargando juegos desde GiantBomb..."
             ) : (
               <>
                 Mostrando <span className="text-[#A56BFA] font-bold">{juegos.length}</span> de{" "}
                 <span className="text-white font-bold">
-                  {paginacion.total.toLocaleString()}
+                  {(paginacion.total ?? 0).toLocaleString()}
                 </span>{" "}
                 juegos
                 {searchTerm && (
@@ -420,7 +453,7 @@ export default function Juegos() {
         {loading && (
           <div className="text-center py-12">
             <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-[#A56BFA]"></div>
-            <p className="mt-4 text-[#A593C7]">Cargando juegos desde IGDB...</p>
+            <p className="mt-4 text-[#A593C7]">Cargando juegos desde GiantBomb...</p>
           </div>
         )}
 
@@ -456,12 +489,10 @@ export default function Juegos() {
                         e.target.src = "https://images.unsplash.com/photo-1550745165-9bc0b252726f?w=400&h=200&fit=crop";
                       }}
                     />
-                    {/* Rating */}
-                    {game.rating && (
-                      <div className="absolute top-3 right-3 bg-[#7B3FE4] text-white px-2 py-1 rounded-full text-sm font-bold">
-                        ⭐ {getRating(game)}
-                      </div>
-                    )}
+                    {/* Fecha de lanzamiento en lugar de rating */}
+                    <div className="absolute top-3 right-3 bg-[#7B3FE4] text-white px-2 py-1 rounded-full text-sm font-bold">
+                      🗓️ {getReleaseDate(game)}
+                    </div>
                   </div>
 
                   {/* Contenido */}
@@ -469,13 +500,6 @@ export default function Juegos() {
                     <h3 className="text-xl font-bold mb-2 text-white group-hover:text-[#A56BFA] transition-colors line-clamp-2">
                       {getSafeName(game)}
                     </h3>
-
-                    {/* Fecha de lanzamiento */}
-                    <div className="mb-2">
-                      <span className="bg-[#4A2B6B] text-[#A593C7] px-2 py-1 rounded text-xs">
-                        🗓️ {getReleaseDate(game)}
-                      </span>
-                    </div>
 
                     {/* Géneros */}
                     <div className="flex flex-wrap gap-1 mb-2">
@@ -506,10 +530,10 @@ export default function Juegos() {
                     </p>
 
                     <button
-                      onClick={() => window.open(`https://www.igdb.com/games/${game.slug || game.id}`, '_blank')}
+                      onClick={() => handleVerDetalles(game)}
                       className="w-full bg-[#7B3FE4] hover:bg-[#A56BFA] text-white text-center py-2 px-4 rounded-lg transition-colors font-medium"
                     >
-                      Ver en IGDB
+                      Ver en GiantBomb
                     </button>
                   </div>
                 </div>
@@ -534,7 +558,7 @@ export default function Juegos() {
                 <button
                   onClick={() => cambiarPagina(paginacion.pagina + 1)}
                   disabled={paginacion.pagina === paginacion.totalPaginas}
-                  className="bg-[#7B3FE4] hover:bg-[#A56BFA] disabled:bg-[#4A2B6B] text-white px-6 py-2 rounded-lg transition-colors"
+                  className="bg-[#7B3FE4] hover:bg-[#A56BombFA] disabled:bg-[#4A2B6B] text-white px-6 py-2 rounded-lg transition-colors"
                 >
                   Siguiente
                 </button>
@@ -561,7 +585,7 @@ export default function Juegos() {
         {/* Información de la API */}
         <div className="mt-12 text-center">
           <p className="text-[#A593C7] text-sm">
-            Datos proporcionados por <a href="https://www.igdb.com" target="_blank" rel="noopener noreferrer" className="text-[#A56BFA] hover:underline">IGDB API</a>
+            Datos proporcionados por <a href="https://www.giantbomb.com" target="_blank" rel="noopener noreferrer" className="text-[#A56BFA] hover:underline">GiantBomb API</a>
           </p>
         </div>
       </div>

@@ -98,7 +98,7 @@ export default function Header() {
           </button>
 
           <div
-            className={`absolute right-0 mt-2 w-44 rounded-md border border-[#7B3FE4]/20 bg-[#15101a]/95 shadow-lg py-1 transition-opacity duration-150 z-50 ${
+            className={`absolute right-0 mt-2 w-52 rounded-md border border-[#7B3FE4]/20 bg-[#15101a]/95 shadow-lg py-1 transition-opacity duration-150 z-50 ${
               openCommunity
                 ? "opacity-100 visible scale-100"
                 : "opacity-0 invisible scale-95"
@@ -129,6 +129,14 @@ export default function Header() {
               onClick={() => setOpenCommunity(false)}
             >
               🎯 Eventos
+            </Link>
+            <Link
+              to="/directos"
+              className="block px-4 py-2 text-sm text-[#E4D9F9] hover:bg-[#7B3FE4]/10 transition-colors"
+              role="menuitem"
+              onClick={() => setOpenCommunity(false)}
+            >
+              🔴 Directos
             </Link>
           </div>
         </div>

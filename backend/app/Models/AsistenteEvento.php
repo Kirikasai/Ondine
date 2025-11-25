@@ -1,5 +1,4 @@
 <?php
-// app/Models/AsistenteEvento.php
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
@@ -7,7 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 class AsistenteEvento extends Model
 {
     protected $table = 'asistentes_evento';
-    public $timestamps = false; 
+    public $timestamps = false;
     const CREATED_AT = 'creado_en';
     const UPDATED_AT = null;
 

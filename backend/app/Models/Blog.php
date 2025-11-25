@@ -6,15 +6,13 @@ use Illuminate\Database\Eloquent\Model;
 class Blog extends Model
 {
     protected $table = 'blogs';
-    public $timestamps = false; 
+
+    public $timestamps = true;
     const CREATED_AT = 'creado_en';
     const UPDATED_AT = null;
 
     protected $fillable = [
-        'usuario_id',
-        'titulo',
-        'contenido',
-        'etiquetas'
+        'usuario_id', 'titulo', 'contenido', 'etiquetas'
     ];
 
     public function usuario()

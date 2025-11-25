@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback } from "react";
-import { newsAPI } from "../services/api";
+import { newsAPI } from "../Services/api";
 
 export default function Noticias() {
   const [noticias, setNoticias] = useState([]);

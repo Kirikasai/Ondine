@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom";
 import { useEffect, useState } from "react";
-import { steamAPI } from "../services/api";
+import { giantbombAPI } from "../Services/api";
 import logo from "../assets/ondine.png";
 
 export default function Home() {
@@ -14,7 +14,7 @@ export default function Home() {
         setLoading(true);
         setError(null);
         console.log("🔄 Iniciando carga de juegos destacados...");
-        const data = await steamAPI.getJuegos({
+        const data = await giantbombAPI.getJuegos({
           limite: 3,
           pagina: 1,
         });
@@ -31,7 +31,7 @@ export default function Home() {
         console.error("❌ Error cargando juegos destacados:", error);
         try {
           console.log("🔄 Intentando carga alternativa...");
-          const dataAlternativa = await steamAPI.getJuegos({ limite: 3 });
+          const dataAlternativa = await giantbombAPI.getJuegos({ limite: 3 });
           const juegosAlternativos =
             dataAlternativa.data || dataAlternativa.juegos || [];
 
@@ -123,7 +123,7 @@ export default function Home() {
 
   // Función para obtener ID del juego
   const getGameId = (game) => {
-    return game?.id || game?.steam_appid || game?.slug || Math.random();
+    return game?.id || game?.giantbomb_appid || game?.slug || Math.random();
   };
 
   return (

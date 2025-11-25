@@ -9,9 +9,14 @@ import Register from "./pages/Register";
 import Blogs from "./pages/Blogs";
 import Foros from "./pages/Foros";
 import Eventos from "./pages/Eventos";
-import DetalleForo from "./pages/DetalleForo";
+import Directos from "./pages/DirectosPages";
 import CrearBlog from "./pages/CrearBlog";
 import CrearEvento from "./pages/CrearEvento";
+import Perfil from "./pages/Profile";
+import EditarPerfil from "./pages/EditarPerfil";
+import BlogPage from './components/BlogPage';
+import ForoPage from './components/ForoPage';
+import EventoPage from './components/EventoPage';
 
 function App() {
   return (
@@ -28,7 +33,12 @@ function App() {
             <Route path="/blogs" element={<Blogs />} />
             <Route path="/foros" element={<Foros />} />
             <Route path="/eventos" element={<Eventos />} />
-            <Route path="/foros/:id" element={<DetalleForo />} />
+            <Route path="/perfil" element={<Perfil />} />
+            <Route path="/editar-perfil" element={<EditarPerfil />} />
+            <Route path="/directos" element={<Directos />} />
+            <Route path="/foros/:id" element={<ForoPage />} />
+            <Route path="/blogs/:id" element={<BlogPage />} />
+            <Route path="/eventos/:id" element={<EventoPage />} />
             <Route path="/blogs/crear" element={<CrearBlog />} />
             <Route path="/eventos/crear" element={<CrearEvento />} />
           </Routes>

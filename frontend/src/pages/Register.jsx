@@ -1,13 +1,13 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { authAPI } from '../services/apiServer'; // ✅ Importación corregida
+import { authAPI } from '../Services/api';
 
 export default function Register() {
   const [formData, setFormData] = useState({
-    name: "",
-    email: "",
-    password: "",
-    password_confirmation: ""
+    nombre_usuario: "",
+    correo: "",
+    contrasena: "",
+    contrasena_confirmation: ""
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -18,70 +18,75 @@ export default function Register() {
       ...formData,
       [e.target.name]: e.target.value
     });
+    // Limpiar error cuando el usuario empiece a escribir
+    if (error) setError("");
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
 
-    // Validaciones básicas
-    if (formData.password !== formData.password_confirmation) {
+    // Validaciones del frontend
+    if (formData.contrasena !== formData.contrasena_confirmation) {
       setError("Las contraseñas no coinciden");
       return;
     }
-
-    if (formData.password.length < 6) {
+    if (formData.contrasena.length < 6) {
       setError("La contraseña debe tener al menos 6 caracteres");
+      return;
+    }
+    if (formData.nombre_usuario.length < 3) {
+      setError("El nombre de usuario debe tener al menos 3 caracteres");
       return;
     }
 
     setLoading(true);
 
     try {
-      console.log("📝 Registrando usuario...", formData);
-      
-      const response = await authAPI.register({
-        name: formData.name,
-        email: formData.email,
-        password: formData.password,
-        password_confirmation: formData.password_confirmation
-      });
+      console.log("📝 Registrando usuario:", formData);
+
+      const response = await authAPI.register(formData);
 
       console.log("✅ Registro exitoso:", response);
 
-      // Guardar token y usuario en localStorage
-      if (response.token) {
-        localStorage.setItem('auth_token', response.token);
-        localStorage.setItem('user', JSON.stringify(response.user));
-        
-        // Redirigir al home
+      // Mostrar mensaje de éxito
+      setError("✅ Cuenta creada exitosamente! Redirigiendo...");
+
+      // Redirigir después de un breve delay
+      setTimeout(() => {
         navigate("/");
-      } else {
-        setError("No se recibió token de autenticación");
-      }
+      }, 1500);
 
     } catch (err) {
       console.error("❌ Error en registro:", err);
       
-      // Manejar diferentes formatos de error
+      let errorMessage = "Error al registrar usuario";
+      
       if (err.message) {
-        setError(err.message);
-      } else if (err.response?.data?.message) {
-        setError(err.response.data.message);
-      } else {
-        setError("Error al registrar usuario. Intenta nuevamente.");
+        // Manejar diferentes tipos de errores
+        if (err.message.includes("422") || err.message.includes("validation")) {
+          errorMessage = "Datos inválidos. Verifica la información.";
+        } else if (err.message.includes("409") || err.message.includes("unique")) {
+          errorMessage = "El nombre de usuario o correo ya está en uso";
+        } else if (err.message.includes("Network") || err.message.includes("conexión")) {
+          errorMessage = "Error de conexión. Verifica tu internet.";
+        } else {
+          errorMessage = err.message;
+        }
       }
+      
+      setError(`❌ ${errorMessage}`);
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen bg-[#1B1128] flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-gradient-to-br from-[#1B1128] via-[#2D1B3A] to-[#7B3FE4] flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-md w-full space-y-8">
         {/* Header */}
         <div className="text-center">
-          <h2 className="mt-6 text-3xl font-extrabold text-[#E4D9F9]">
+          <h2 className="text-3xl font-extrabold text-[#E4D9F9]">
             Crear Cuenta
           </h2>
           <p className="mt-2 text-sm text-[#A593C7]">
@@ -90,55 +95,59 @@ export default function Register() {
         </div>
 
         {/* Formulario */}
-        <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
+        <form className="mt-8 space-y-6 bg-[#2D1B3A]/90 backdrop-blur-lg rounded-2xl shadow-xl p-8 border border-[#7B3FE4]/30" onSubmit={handleSubmit}>
           <div className="space-y-4">
-            {/* Nombre */}
+            {/* Nombre de Usuario */}
             <div>
-              <label htmlFor="name" className="block text-sm font-medium text-[#E4D9F9]">
-                Nombre completo
+              <label htmlFor="nombre_usuario" className="block text-sm font-medium text-[#E4D9F9] mb-2">
+                Nombre de Usuario
               </label>
               <input
-                id="name"
-                name="name"
+                id="nombre_usuario"
+                name="nombre_usuario"
                 type="text"
                 required
-                value={formData.name}
+                value={formData.nombre_usuario}
                 onChange={handleChange}
-                className="mt-1 block w-full px-3 py-2 bg-[#2D1B3A] border border-[#7B3FE4]/30 rounded-lg text-white placeholder-[#A593C7] focus:outline-none focus:border-[#A56BFA] focus:ring-1 focus:ring-[#A56BFA]"
-                placeholder="Tu nombre completo"
+                disabled={loading}
+                className="w-full px-4 py-3 bg-[#E4D9F9]/10 border border-[#A56BFA]/30 rounded-lg text-white placeholder-[#A593C7] focus:outline-none focus:ring-2 focus:ring-[#7B3FE4] focus:border-transparent transition-colors"
+                placeholder="Tu nombre de usuario"
+                minLength="3"
               />
             </div>
 
             {/* Email */}
             <div>
-              <label htmlFor="email" className="block text-sm font-medium text-[#E4D9F9]">
+              <label htmlFor="correo" className="block text-sm font-medium text-[#E4D9F9] mb-2">
                 Correo electrónico
               </label>
               <input
-                id="email"
-                name="email"
+                id="correo"
+                name="correo"
                 type="email"
                 required
-                value={formData.email}
+                value={formData.correo}
                 onChange={handleChange}
-                className="mt-1 block w-full px-3 py-2 bg-[#2D1B3A] border border-[#7B3FE4]/30 rounded-lg text-white placeholder-[#A593C7] focus:outline-none focus:border-[#A56BFA] focus:ring-1 focus:ring-[#A56BFA]"
+                disabled={loading}
+                className="w-full px-4 py-3 bg-[#E4D9F9]/10 border border-[#A56BFA]/30 rounded-lg text-white placeholder-[#A593C7] focus:outline-none focus:ring-2 focus:ring-[#7B3FE4] focus:border-transparent transition-colors"
                 placeholder="tu@email.com"
               />
             </div>
 
             {/* Contraseña */}
             <div>
-              <label htmlFor="password" className="block text-sm font-medium text-[#E4D9F9]">
+              <label htmlFor="contrasena" className="block text-sm font-medium text-[#E4D9F9] mb-2">
                 Contraseña
               </label>
               <input
-                id="password"
-                name="password"
+                id="contrasena"
+                name="contrasena"
                 type="password"
                 required
-                value={formData.password}
+                value={formData.contrasena}
                 onChange={handleChange}
-                className="mt-1 block w-full px-3 py-2 bg-[#2D1B3A] border border-[#7B3FE4]/30 rounded-lg text-white placeholder-[#A593C7] focus:outline-none focus:border-[#A56BFA] focus:ring-1 focus:ring-[#A56BFA]"
+                disabled={loading}
+                className="w-full px-4 py-3 bg-[#E4D9F9]/10 border border-[#A56BFA]/30 rounded-lg text-white placeholder-[#A593C7] focus:outline-none focus:ring-2 focus:ring-[#7B3FE4] focus:border-transparent transition-colors"
                 placeholder="Mínimo 6 caracteres"
                 minLength="6"
               />
@@ -146,26 +155,31 @@ export default function Register() {
 
             {/* Confirmar Contraseña */}
             <div>
-              <label htmlFor="password_confirmation" className="block text-sm font-medium text-[#E4D9F9]">
+              <label htmlFor="contrasena_confirmation" className="block text-sm font-medium text-[#E4D9F9] mb-2">
                 Confirmar Contraseña
               </label>
               <input
-                id="password_confirmation"
-                name="password_confirmation"
+                id="contrasena_confirmation"
+                name="contrasena_confirmation"
                 type="password"
                 required
-                value={formData.password_confirmation}
+                value={formData.contrasena_confirmation}
                 onChange={handleChange}
-                className="mt-1 block w-full px-3 py-2 bg-[#2D1B3A] border border-[#7B3FE4]/30 rounded-lg text-white placeholder-[#A593C7] focus:outline-none focus:border-[#A56BFA] focus:ring-1 focus:ring-[#A56BFA]"
+                disabled={loading}
+                className="w-full px-4 py-3 bg-[#E4D9F9]/10 border border-[#A56BFA]/30 rounded-lg text-white placeholder-[#A593C7] focus:outline-none focus:ring-2 focus:ring-[#7B3FE4] focus:border-transparent transition-colors"
                 placeholder="Repite tu contraseña"
                 minLength="6"
               />
             </div>
           </div>
 
-          {/* Mensaje de Error */}
+          {/* Mensaje de Error/Éxito */}
           {error && (
-            <div className="bg-red-900/20 border border-red-700 text-red-400 px-4 py-3 rounded-lg text-sm">
+            <div className={`px-4 py-3 rounded-lg text-sm border ${
+              error.includes("✅") 
+                ? "bg-green-900/20 border-green-700 text-green-400" 
+                : "bg-red-900/20 border-red-700 text-red-400"
+            }`}>
               {error}
             </div>
           )}
@@ -175,11 +189,11 @@ export default function Register() {
             <button
               type="submit"
               disabled={loading}
-              className="group relative w-full flex justify-center py-3 px-4 border border-transparent text-sm font-medium rounded-lg text-white bg-[#7B3FE4] hover:bg-[#A56BFA] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#A56BFA] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              className="w-full bg-[#7B3FE4] hover:bg-[#A56BFA] disabled:bg-[#4A2B6B] text-white font-bold py-3 rounded-lg shadow-lg transition-all flex items-center justify-center gap-2"
             >
               {loading ? (
                 <>
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
                   Creando cuenta...
                 </>
               ) : (
