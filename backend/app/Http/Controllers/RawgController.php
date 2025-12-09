@@ -21,16 +21,19 @@ class RawgController extends Controller
     {
         try {
             if (!$this->apiKey) {
-                Log::error('RAWG API Key faltante');
+                Log::error('🔴 RAWG API Key no configurada');
                 return null;
             }
 
             $baseParams = ['key' => $this->apiKey];
             $allParams = array_merge($baseParams, $params);
 
-            Log::info("📡 Request a RAWG: {$endpoint}", ['params' => $allParams]);
+            Log::info("📡 Request a RAWG: {$endpoint}", [
+                'params' => array_merge($allParams, ['key' => '***'])
+            ]);
 
             $response = Http::timeout(30)
+                ->retry(2, 100)
                 ->get("{$this->baseUrl}/{$endpoint}", $allParams);
 
             if ($response->successful()) {
@@ -44,7 +47,7 @@ class RawgController extends Controller
             Log::error("❌ Error RAWG API", [
                 'endpoint' => $endpoint,
                 'status' => $response->status(),
-                'response' => $response->body()
+                'body' => $response->body()
             ]);
 
             return null;
@@ -60,29 +63,25 @@ class RawgController extends Controller
             Log::info('🎮 SOLICITANDO JUEGOS DE RAWG');
 
             $pagina = max(1, (int)$request->get('pagina', 1));
-            $limite = min(40, max(1, (int)$request->get('limite', 20))); // RAWG maxea en 40
-            $offset = ($pagina - 1) * $limite;
+            $limite = min(40, max(1, (int)$request->get('limite', 20)));
 
             $params = [
                 'page_size' => $limite,
                 'page' => $pagina,
-                'ordering' => '-released' // Más recientes primero
+                'ordering' => '-rating',
+                'exclude_tags' => '17848', // Solo el tag "NSFW" específico de RAWG
             ];
 
-            // Búsqueda
             $busqueda = $request->get('busqueda');
             if ($busqueda && trim($busqueda) !== '') {
                 $params['search'] = trim($busqueda);
-                $params['search_exact'] = false; // Búsqueda parcial
             }
 
-            // Género
             $genero = $request->get('genero');
             if ($genero && $genero !== 'todos') {
                 $params['genres'] = $genero;
             }
 
-            // Plataforma
             $plataforma = $request->get('plataforma');
             if ($plataforma && $plataforma !== 'todas') {
                 $params['parent_platforms'] = $plataforma;
@@ -93,6 +92,7 @@ class RawgController extends Controller
             if (!$response) {
                 return response()->json([
                     'juegos' => [],
+                    'data' => [],
                     'paginacion' => [
                         'pagina_actual' => $pagina,
                         'total_juegos' => 0,
@@ -103,69 +103,176 @@ class RawgController extends Controller
                 ], 500);
             }
 
-            // Procesar juegos
+            // ✅ Obtener el total ANTES del filtrado
+            $totalJuegosRawg = $response['count'] ?? 0;
+
+            // ✅ LISTA NEGRA MUY ESPECÍFICA (solo juegos explícitos conocidos)
+            $juegosProhibidos = [
+                'tentacle van',
+                'tentacle-van',
+            ];
+
+            // ✅ TAGS ADULTOS MUY ESPECÍFICOS (solo contenido sexual explícito)
+            $tagsAdultosMuyExplicitos = [
+                'sexual content',
+                'nsfw',
+                'erotic',
+                'hentai',
+            ];
+
             $juegosProcesados = [];
             $results = $response['results'] ?? [];
 
             foreach ($results as $juego) {
+                $nombreJuego = strtolower($juego['name'] ?? '');
+                $slugJuego = strtolower($juego['slug'] ?? '');
+
+                // ✅ FILTRO 1: Verificar lista negra específica
+                $estaProhibido = false;
+                foreach ($juegosProhibidos as $prohibido) {
+                    $prohibidoLower = strtolower($prohibido);
+                    if ($nombreJuego === $prohibidoLower || $slugJuego === $prohibidoLower) {
+                        $estaProhibido = true;
+                        Log::info("🚫 Bloqueado por lista negra: " . $juego['name']);
+                        break;
+                    }
+                }
+
+                if ($estaProhibido) {
+                    continue;
+                }
+
+                // ✅ FILTRO 2: Verificar tags adultos MUY ESPECÍFICOS
+                $tags = array_map(fn($t) => strtolower($t['name'] ?? ''), $juego['tags'] ?? []);
+                $tieneContenidoAdultoExplicito = false;
+
+                foreach ($tagsAdultosMuyExplicitos as $tagAdulto) {
+                    if (in_array(strtolower($tagAdulto), $tags)) {
+                        $tieneContenidoAdultoExplicito = true;
+                        Log::info("🔞 Filtrado por tag adulto explícito: " . $juego['name']);
+                        break;
+                    }
+                }
+
+                if ($tieneContenidoAdultoExplicito) {
+                    continue;
+                }
+
+                // ✅ FILTRO 3: Solo rating "Adults Only" (AO)
+                $rating = strtolower($juego['esrb_rating']['name'] ?? '');
+                if ($rating === 'adults only' || $rating === 'ao') {
+                    Log::info("🔞 Filtrado por rating AO: " . $juego['name']);
+                    continue;
+                }
+
+                // Obtener imagen principal
+                $imagenPrincipal = $juego['background_image']
+                    ?? ($juego['short_screenshots'][0]['image'] ?? null)
+                    ?? $juego['background_image_additional']
+                    ?? null;
+
+                // Generar descripción desde tags/géneros
+                $tagsLimpios = array_slice(array_map(fn($t) => $t['name'] ?? '', $juego['tags'] ?? []), 0, 3);
+                $genres = array_slice(array_map(fn($g) => $g['name'] ?? '', $juego['genres'] ?? []), 0, 3);
+
+                $descripcion = '';
+                if (!empty($genres)) {
+                    $descripcion = implode(', ', $genres);
+                }
+                if (!empty($tagsLimpios)) {
+                    $descripcion .= ($descripcion ? ' • ' : '') . implode(', ', $tagsLimpios);
+                }
+                if (!$descripcion) {
+                    $descripcion = 'Explora este juego en RAWG para más detalles.';
+                }
+
                 $juegosProcesados[] = [
                     'id' => $juego['id'] ?? null,
                     'name' => $juego['name'] ?? 'Nombre no disponible',
-                    'background_image' => $juego['background_image'] ?? null,
-                    'cover' => [
-                        'image_id' => basename($juego['background_image'] ?? '') ?? null
-                    ],
-                    'released' => $juego['released'] ?? null,
-                    'rating' => round($juego['rating'] ?? 0, 1),
-                    'rating_top' => 5,
-                    'genres' => array_map(function($genre) {
-                        return ['name' => $genre['name'] ?? ''];
-                    }, $juego['genres'] ?? []),
-                    'platforms' => array_map(function($platform) {
-                        return ['name' => $platform['platform']['name'] ?? ''];
-                    }, $juego['platforms'] ?? []),
-                    'summary' => $juego['description'] ?? 'Descripción no disponible',
-                    'short_description' => substr($juego['description'] ?? '', 0, 200),
                     'slug' => $juego['slug'] ?? null,
-                    'rawg_url' => "https://rawg.io/games/" . ($juego['slug'] ?? '')
+                    'rawg_url' => isset($juego['slug']) ? "https://rawg.io/games/{$juego['slug']}" : null,
+
+                    // Imágenes
+                    'background_image' => $imagenPrincipal,
+                    'background_image_additional' => $juego['background_image_additional'] ?? null,
+                    'short_screenshots' => $juego['short_screenshots'] ?? [],
+                    'cover' => [
+                        'image_id' => $imagenPrincipal ? basename($imagenPrincipal) : null,
+                        'url' => $imagenPrincipal
+                    ],
+
+                    // Fechas
+                    'released' => $juego['released'] ?? null,
+                    'tba' => $juego['tba'] ?? false,
+
+                    // Rating
+                    'rating' => floatval($juego['rating'] ?? 0),
+                    'rating_top' => 5,
+                    'ratings_count' => intval($juego['ratings_count'] ?? 0),
+                    'reviews_count' => intval($juego['reviews_count'] ?? 0),
+                    'reviews_text_count' => intval($juego['reviews_text_count'] ?? 0),
+                    'metacritic' => $juego['metacritic'] ?? null,
+                    'added' => intval($juego['added'] ?? 0),
+
+                    // Categorías
+                    'genres' => array_map(fn($g) => [
+                        'id' => $g['id'] ?? null,
+                        'name' => $g['name'] ?? ''
+                    ], $juego['genres'] ?? []),
+
+                    'platforms' => array_map(fn($p) => [
+                        'id' => $p['platform']['id'] ?? null,
+                        'name' => $p['platform']['name'] ?? ''
+                    ], $juego['platforms'] ?? []),
+
+                    'tags' => array_map(fn($t) => [
+                        'id' => $t['id'] ?? null,
+                        'name' => $t['name'] ?? ''
+                    ], array_slice($juego['tags'] ?? [], 0, 5)),
+
+                    'stores' => array_map(fn($s) => [
+                        'id' => $s['store']['id'] ?? null,
+                        'name' => $s['store']['name'] ?? ''
+                    ], $juego['stores'] ?? []),
+
+                    // Descripción
+                    'summary' => $descripcion,
+                    'short_description' => strlen($descripcion) > 150
+                        ? substr($descripcion, 0, 150) . '...'
+                        : $descripcion,
+
+                    // Extras
+                    'playtime' => intval($juego['playtime'] ?? 0),
+                    'suggestions_count' => intval($juego['suggestions_count'] ?? 0),
+                    'esrb_rating' => $juego['esrb_rating']['name'] ?? null,
                 ];
             }
 
-            $totalJuegos = $response['count'] ?? 0;
-            $totalPaginas = ceil($totalJuegos / $limite);
+            // ✅ Usar el total de RAWG, no el filtrado
+            $totalPaginas = $limite > 0 ? ceil($totalJuegosRawg / $limite) : 0;
 
-            Log::info("✅ Juegos procesados: " . count($juegosProcesados));
+            Log::info("✅ Juegos en esta página: " . count($juegosProcesados) . " | Total RAWG: " . $totalJuegosRawg);
 
             return response()->json([
                 'juegos' => $juegosProcesados,
                 'data' => $juegosProcesados,
                 'paginacion' => [
                     'pagina_actual' => $pagina,
-                    'total_juegos' => $totalJuegos,
+                    'total_juegos' => $totalJuegosRawg, // ✅ Total de RAWG
                     'total_paginas' => $totalPaginas
                 ],
-                'total' => $totalJuegos,
-                'meta' => [
-                    'current_page' => $pagina,
-                    'last_page' => $totalPaginas,
-                    'total' => $totalJuegos
-                ],
                 'status' => 'success',
-                'fuente' => 'rawg',
-                'mensaje' => count($juegosProcesados) . ' juegos cargados desde RAWG'
+                'fuente' => 'rawg'
             ]);
 
         } catch (\Exception $e) {
             Log::error('💥 Error en getJuegos: ' . $e->getMessage());
             return response()->json([
                 'juegos' => [],
-                'paginacion' => [
-                    'pagina_actual' => 1,
-                    'total_juegos' => 0,
-                    'total_paginas' => 0
-                ],
+                'data' => [],
+                'paginacion' => ['pagina_actual' => 1, 'total_juegos' => 0, 'total_paginas' => 0],
                 'status' => 'error',
-                'mensaje' => 'Error interno del servidor'
+                'mensaje' => $e->getMessage()
             ], 500);
         }
     }
@@ -174,8 +281,6 @@ class RawgController extends Controller
     {
         try {
             $cacheKey = 'rawg_generos';
-
-            // Cachear por 24 horas
             $data = Cache::remember($cacheKey, 86400, function () {
                 return $this->makeRequest('genres', ['page_size' => 50]);
             });
@@ -183,27 +288,20 @@ class RawgController extends Controller
             if (!$data) {
                 return response()->json([
                     'generos' => [],
-                    'status' => 'error',
-                    'mensaje' => 'No se pudieron cargar los géneros'
+                    'data' => [],
+                    'status' => 'error'
                 ], 500);
             }
 
             $generos = $data['results'] ?? [];
-
             return response()->json([
                 'generos' => $generos,
                 'data' => $generos,
-                'total' => count($generos),
                 'status' => 'success'
             ]);
-
         } catch (\Exception $e) {
             Log::error('Error en getGeneros: ' . $e->getMessage());
-            return response()->json([
-                'generos' => [],
-                'status' => 'error',
-                'mensaje' => 'Error al cargar géneros'
-            ], 500);
+            return response()->json(['generos' => [], 'data' => [], 'status' => 'error'], 500);
         }
     }
 
@@ -211,35 +309,27 @@ class RawgController extends Controller
     {
         try {
             $cacheKey = 'rawg_plataformas';
-
             $data = Cache::remember($cacheKey, 86400, function () {
-                return $this->makeRequest('parent_platforms', ['page_size' => 50]);
+                return $this->makeRequest('platforms/lists/parents', ['page_size' => 50]);
             });
 
             if (!$data) {
                 return response()->json([
                     'plataformas' => [],
-                    'status' => 'error',
-                    'mensaje' => 'No se pudieron cargar las plataformas'
+                    'data' => [],
+                    'status' => 'error'
                 ], 500);
             }
 
             $plataformas = $data['results'] ?? [];
-
             return response()->json([
                 'plataformas' => $plataformas,
                 'data' => $plataformas,
-                'total' => count($plataformas),
                 'status' => 'success'
             ]);
-
         } catch (\Exception $e) {
             Log::error('Error en getPlataformas: ' . $e->getMessage());
-            return response()->json([
-                'plataformas' => [],
-                'status' => 'error',
-                'mensaje' => 'Error al cargar plataformas'
-            ], 500);
+            return response()->json(['plataformas' => [], 'data' => [], 'status' => 'error'], 500);
         }
     }
 
@@ -250,46 +340,36 @@ class RawgController extends Controller
             if (!$busqueda || trim($busqueda) === '') {
                 return response()->json([
                     'juegos' => [],
+                    'data' => [],
                     'total' => 0,
-                    'status' => 'success',
-                    'mensaje' => 'Término de búsqueda vacío'
+                    'status' => 'success'
                 ]);
             }
 
-            return $this->getJuegos(new Request([
-                'busqueda' => $busqueda,
-                'limite' => 20,
-                'pagina' => 1
-            ]));
-
+            $newRequest = new Request(['busqueda' => $busqueda, 'limite' => 20, 'pagina' => 1]);
+            return $this->getJuegos($newRequest);
         } catch (\Exception $e) {
             Log::error('Error en buscarJuegos: ' . $e->getMessage());
-            return response()->json([
-                'juegos' => [],
-                'total' => 0,
-                'status' => 'error',
-                'mensaje' => 'Error en la búsqueda'
-            ], 500);
+            return response()->json(['juegos' => [], 'data' => [], 'status' => 'error'], 500);
         }
     }
 
     public function verificarCredenciales()
     {
         try {
-            $params = ['key' => $this->apiKey, 'page_size' => 1];
-            $test = Http::timeout(10)->get("{$this->baseUrl}/games", $params);
-
-            $status = $test->successful() ? 'OK' : 'ERROR';
-            $statusCode = $test->status();
+            $test = Http::timeout(10)->get("{$this->baseUrl}/games", [
+                'key' => $this->apiKey,
+                'page_size' => 1
+            ]);
 
             return response()->json([
                 'verificacion' => [
                     'api_key_configurada' => !!$this->apiKey,
-                    'test_conexion' => $status,
-                    'status_code' => $statusCode,
-                    'mensaje' => $status === 'OK'
+                    'test_conexion' => $test->successful() ? 'OK' : 'ERROR',
+                    'status_code' => $test->status(),
+                    'mensaje' => $test->successful()
                         ? '✅ RAWG API funcionando correctamente'
-                        : "❌ Error conectando a RAWG (Status: {$statusCode})"
+                        : "❌ Error: " . $test->status()
                 ]
             ]);
         } catch (\Exception $e) {
