@@ -192,6 +192,36 @@ export default function Juegos() {
     }
   };
 
+  const placeholder = "https://via.placeholder.com/400x225?text=Sin+Imagen";
+
+  const getGameImage = (game) => {
+    return game?.background_image 
+      || game?.background_image_additional 
+      || game?.short_screenshots?.[0]?.image 
+      || placeholder;
+  };
+
+  const getRatingColor = (rating) => {
+    if (rating >= 4) return "text-green-400";
+    if (rating >= 3) return "text-yellow-400";
+    if (rating >= 2) return "text-orange-400";
+    return "text-red-400";
+  };
+
+  const getRatingStars = (rating) => {
+    const fullStars = Math.floor(rating);
+    const hasHalf = rating % 1 >= 0.5;
+    return (
+      <div className="flex items-center gap-1">
+        {[...Array(5)].map((_, i) => (
+          <span key={i} className={i < fullStars ? "text-yellow-400" : "text-gray-600"}>
+            {i < fullStars ? "★" : (i === fullStars && hasHalf ? "⯨" : "☆")}
+          </span>
+        ))}
+      </div>
+    );
+  };
+
   const getSafeImage = (game) => {
     // GiantBomb usa image.medium_url o image.small_url
     if (game?.background_image) {
@@ -449,64 +479,118 @@ export default function Juegos() {
             <div className="grid md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
               {juegos.map((game, index) => (
                 <div
-                  key={game?.id || index}
-                  className="bg-[#2D1B3A] border border-[#7B3FE4]/30 rounded-2xl shadow-xl overflow-hidden hover:scale-[1.02] transition-transform group"
+                  key={game.id}
+                  className="bg-[#2D1B3A] border border-[#7B3FE4]/30 rounded-2xl overflow-hidden hover:border-[#A56BFA]/50 transition-all transform hover:scale-105 shadow-xl"
                 >
-                  {/* Imagen del Juego */}
-                  <div className="relative">
+                  {/* Imagen */}
+                  <div className="relative h-48 overflow-hidden">
                     <img
-                      src={getSafeImage(game)}
-                      alt={getSafeName(game)}
-                      className="w-full h-48 object-cover group-hover:scale-110 transition-transform duration-300"
+                      src={getGameImage(game)}
+                      alt={game.name}
+                      className="w-full h-full object-cover"
+                      loading="lazy"
                       onError={(e) => {
-                        e.target.src = "https://images.unsplash.com/photo-1550745165-9bc0b252726f?w=400&h=200&fit=crop";
+                        e.currentTarget.src = placeholder;
                       }}
                     />
-                    {/* Fecha de lanzamiento en lugar de rating */}
-                    <div className="absolute top-3 right-3 bg-[#7B3FE4] text-white px-2 py-1 rounded-full text-sm font-bold">
-                      🗓️ {getReleaseDate(game)}
-                    </div>
+                    {/* Rating badge overlay */}
+                    {game.rating > 0 && (
+                      <div className="absolute top-2 right-2 bg-black/70 backdrop-blur-sm px-3 py-1 rounded-full flex items-center gap-1">
+                        <span className="text-yellow-400">★</span>
+                        <span className={`font-bold ${getRatingColor(game.rating)}`}>
+                          {game.rating.toFixed(1)}
+                        </span>
+                        <span className="text-gray-400 text-xs">/5</span>
+                      </div>
+                    )}
+                    {/* Metacritic badge */}
+                    {game.metacritic && (
+                      <div className="absolute top-2 left-2 bg-green-600/90 px-2 py-1 rounded text-white text-xs font-bold">
+                        MC {game.metacritic}
+                      </div>
+                    )}
                   </div>
 
-                  {/* Contenido */}
-                  <div className="p-5">
-                    <h3 className="text-xl font-bold mb-2 text-white group-hover:text-[#A56BFA] transition-colors line-clamp-2">
-                      {getSafeName(game)}
+                  {/* Content */}
+                  <div className="p-4 space-y-3">
+                    {/* Título */}
+                    <h3 className="text-lg font-bold text-white line-clamp-2 min-h-[3.5rem]">
+                      {game.name}
                     </h3>
 
-                    {/* Géneros */}
-                    <div className="flex flex-wrap gap-1 mb-2">
-                      {getGenerosJuego(game).map((genero, idx) => (
-                        <span
-                          key={idx}
-                          className="bg-[#7B3FE4]/20 text-[#A56BFA] px-2 py-1 rounded text-xs"
-                        >
-                          {genero}
-                        </span>
-                      ))}
+                    {/* Rating con estrellas */}
+                    <div className="flex items-center justify-between">
+                      {getRatingStars(game.rating)}
+                      <span className="text-xs text-[#A593C7]">
+                        {game.ratings_count || 0} reseñas
+                      </span>
                     </div>
+
+                    {/* Fecha de lanzamiento */}
+                    {game.released && (
+                      <p className="text-sm text-[#A593C7]">
+                        📅 {new Date(game.released).toLocaleDateString('es-ES', {
+                          year: 'numeric',
+                          month: 'long',
+                          day: 'numeric'
+                        })}
+                      </p>
+                    )}
+
+                    {/* Descripción corta */}
+                    {game.short_description && (
+                      <p className="text-sm text-[#A593C7] line-clamp-2">
+                        {game.short_description.replace(/<[^>]*>/g, '')}
+                      </p>
+                    )}
+
+                    {/* Géneros */}
+                    {game.genres && game.genres.length > 0 && (
+                      <div className="flex flex-wrap gap-2">
+                        {game.genres.slice(0, 3).map((genero, index) => (
+                          <span
+                            key={index}
+                            className="bg-[#7B3FE4]/20 text-[#A56BFA] px-2 py-1 rounded text-xs"
+                          >
+                            {genero.name}
+                          </span>
+                        ))}
+                      </div>
+                    )}
 
                     {/* Plataformas */}
-                    <div className="flex flex-wrap gap-1 mb-3">
-                      {getPlataformasJuego(game).map((plataforma, idx) => (
-                        <span
-                          key={idx}
-                          className="bg-[#A56BFA]/20 text-[#E4D9F9] px-2 py-1 rounded text-xs"
-                        >
-                          {plataforma}
-                        </span>
-                      ))}
-                    </div>
+                    {game.platforms && game.platforms.length > 0 && (
+                      <div className="flex flex-wrap gap-1">
+                        {game.platforms.slice(0, 4).map((plataforma, index) => (
+                          <span
+                            key={index}
+                            className="bg-[#E4D9F9]/10 text-[#A593C7] px-2 py-1 rounded text-xs"
+                            title={plataforma.name}
+                          >
+                            {plataforma.name}
+                          </span>
+                        ))}
+                        {game.platforms.length > 4 && (
+                          <span className="text-xs text-[#A593C7] px-2 py-1">
+                            +{game.platforms.length - 4}
+                          </span>
+                        )}
+                      </div>
+                    )}
 
-                    <p className="text-[#A593C7] text-sm mb-4 line-clamp-2">
-                      {getSafeDescription(game)}
-                    </p>
+                    {/* Tiempo de juego */}
+                    {game.playtime > 0 && (
+                      <p className="text-xs text-[#A593C7]">
+                        ⏱️ ~{game.playtime}h de juego promedio
+                      </p>
+                    )}
 
+                    {/* Botón */}
                     <button
                       onClick={() => handleVerDetalles(game)}
                       className="w-full bg-[#7B3FE4] hover:bg-[#A56BFA] text-white text-center py-2 px-4 rounded-lg transition-colors font-medium"
                     >
-                      Ver en RAWG {/* ← Cambiar aquí (era "Ver en GiantBomb") */}
+                      Ver en RAWG
                     </button>
                   </div>
                 </div>

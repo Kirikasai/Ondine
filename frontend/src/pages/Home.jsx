@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom";
 import { useEffect, useState } from "react";
-import { rawgAPI } from "../Services/api";  // ← Cambiar aquí
+import { rawgAPI } from "../Services/api";
 import logo from "../assets/ondine.png";
 
 export default function Home() {
@@ -14,7 +14,7 @@ export default function Home() {
         setLoading(true);
         setError(null);
         console.log("🔄 Cargando juegos destacados desde RAWG...");
-        const data = await rawgAPI.getJuegos({  // ← Cambiar aquí
+        const data = await rawgAPI.getJuegos({
           limite: 3,
           pagina: 1,
         });
@@ -31,7 +31,7 @@ export default function Home() {
         console.error("❌ Error cargando juegos RAWG:", error);
         try {
           console.log("🔄 Intentando carga alternativa de RAWG...");
-          const dataAlternativa = await rawgAPI.getJuegos({ limite: 3 });  // ← Cambiar aquí
+          const dataAlternativa = await rawgAPI.getJuegos({ limite: 3 });
           const juegosAlternativos =
             dataAlternativa.data || dataAlternativa.juegos || [];
 
@@ -51,79 +51,54 @@ export default function Home() {
 
     fetchFeaturedGames();
   }, []);
-/* Obtener Imgen del Juego */
-  const getImage = (game) => {
-    if (game?.background_image) {
-      return game.background_image;
-    }
 
-    if (game?.cover?.image_id) {
-      return `https://images.igdb.com/igdb/image/upload/t_cover_big/${game.cover.image_id}.jpg`;
-    }
+  // Placeholder para imágenes sin cargar
+  const placeholder = "https://via.placeholder.com/400x225/7B3FE4/FFFFFF?text=Sin+Imagen";
+  
+  // Obtener imagen del juego con fallbacks
+  const getGameImage = (game) => {
+    if (game?.background_image) return game.background_image;
+    if (game?.cover?.url) return game.cover.url;
+    if (game?.short_screenshots?.[0]?.image) return game.short_screenshots[0].image;
+    if (game?.background_image_additional) return game.background_image_additional;
+    return placeholder;
+  };
 
-    if (game?.cover?.url) {
-      const imageId = game.cover.url.split("/").pop()?.replace(".jpg", "");
-      if (imageId) {
-        return `https://images.igdb.com/igdb/image/upload/t_cover_big/${imageId}.jpg`;
-      }
-    }
-    return "/placeholder-game.jpg";
+  // Renderizar estrellas de rating
+  const getRatingStars = (rating) => {
+    const fullStars = Math.floor(rating);
+    const hasHalf = rating % 1 >= 0.5;
+    return (
+      <div className="flex items-center gap-0.5">
+        {[...Array(5)].map((_, i) => (
+          <span key={i} className={i < fullStars ? "text-yellow-400 text-lg" : "text-gray-600 text-lg"}>
+            {i < fullStars ? "★" : (i === fullStars && hasHalf ? "⯨" : "☆")}
+          </span>
+        ))}
+      </div>
+    );
   };
-/* Obtener Nombre del Juego */
-  const getName = (game) => {
-    if (!game || !game.name) {
-      return "Nombre no disponible";
-    }
-    return game.name;
-  };
-/* Obtener Descrpcion del Juego */
+
+  // Obtener descripción del juego
   const getDescription = (game) => {
-    if (game?.summary) {
-      return game.summary.length > 120
-        ? `${game.summary.substring(0, 120)}...`
-        : game.summary;
-    }
-
-    if (game?.short_description) {
-      return game.short_description.length > 120
-        ? `${game.short_description.substring(0, 120)}...`
-        : game.short_description;
-    }
-
-    return "Descripción no disponible";
+    if (game?.summary) return game.summary;
+    if (game?.short_description) return game.short_description;
+    
+    const genres = game?.genres?.map(g => g.name).slice(0, 2).join(', ') || '';
+    const platforms = game?.platforms?.map(p => p.name).slice(0, 2).join(', ') || '';
+    
+    if (genres && platforms) return `${genres} • ${platforms}`;
+    if (genres) return `Géneros: ${genres}`;
+    if (platforms) return `Plataformas: ${platforms}`;
+    
+    return "Explora este juego para más información";
   };
 
-  // Función para obtener rating
-  const getSafeRating = (game) => {
-    if (game?.rating) {
-      return Math.round(game.rating);
-    }
-
-    if (game?.total_positive && game?.total_negative) {
-      const total = game.total_positive + game.total_negative;
-      if (total > 0) {
-        return Math.round((game.total_positive / total) * 100);
-      }
-    }
-
+  // Obtener rating formateado
+  const getRating = (game) => {
+    if (game?.rating) return game.rating.toFixed(1);
+    if (game?.metacritic) return (game.metacritic / 20).toFixed(1);
     return "N/A";
-  };
-
-  // Función para obtener géneros
-  const getSafeGenres = (game) => {
-    if (game?.genres && Array.isArray(game.genres)) {
-      if (game.genres[0]?.name) {
-        return game.genres.map((genre) => genre.name).slice(0, 2);
-      }
-      return game.genres.slice(0, 2);
-    }
-
-    return ["Sin género"];
-  };
-
-  // Función para obtener ID del juego
-  const getGameId = (game) => {
-    return game?.id || game?.giantbomb_appid || game?.slug || Math.random();
   };
 
   return (
@@ -219,47 +194,86 @@ export default function Home() {
             <div className="grid md:grid-cols-3 gap-8">
               {featuredGames.map((game, index) => (
                 <div
-                  key={getGameId(game)}
+                  key={game?.id || index}
                   className="bg-[#1B1128] rounded-2xl overflow-hidden shadow-xl border border-[#7B3FE4]/30 hover:scale-[1.03] transition group"
                 >
-                  <div className="relative overflow-hidden">
+                  <div className="relative h-56 overflow-hidden">
                     <img
-                      src={getImage(game)}
-                      alt={getName(game)}
-                      className="w-full h-48 object-cover group-hover:scale-110 transition-transform duration-300"
-                      onError={(e) => {
-                        e.target.src = "/placeholder-game.jpg";
+                      src={getGameImage(game)}
+                      alt={game?.name || 'Juego'}
+                      className="w-full h-full object-cover"
+                      loading="lazy"
+                      onError={(e) => { 
+                        e.currentTarget.src = placeholder;
+                        e.currentTarget.onerror = null;
                       }}
                     />
-                    <div className="absolute top-3 right-3 bg-[#7B3FE4] text-white px-2 py-1 rounded text-sm font-bold">
-                      ⭐ {getSafeRating(game)}
-                    </div>
+                    {/* Rating badge */}
+                    {game?.rating > 0 && (
+                      <div className="absolute top-2 right-2 bg-black/70 backdrop-blur-sm px-3 py-1.5 rounded-full flex items-center gap-1.5">
+                        <span className="text-yellow-400 text-lg">★</span>
+                        <span className="font-bold text-white text-sm">{getRating(game)}</span>
+                        <span className="text-gray-400 text-xs">/5</span>
+                      </div>
+                    )}
+                    {/* Metacritic badge */}
+                    {game?.metacritic && (
+                      <div className="absolute top-2 left-2 bg-green-600/90 backdrop-blur-sm px-2.5 py-1 rounded text-white text-xs font-bold">
+                        MC {game.metacritic}
+                      </div>
+                    )}
                   </div>
+                  
                   <div className="p-6">
-                    <h4 className="font-bold text-lg mb-2 text-[#E4D9F9] group-hover:text-[#A56BFA] transition-colors line-clamp-2">
-                      {getName(game)}
+                    <h4 className="font-bold text-lg mb-3 text-[#E4D9F9] group-hover:text-[#A56BFA] transition-colors line-clamp-2 min-h-[3.5rem]">
+                      {game?.name || 'Nombre no disponible'}
                     </h4>
 
-                    <div className="flex flex-wrap gap-1 mb-3">
-                      {getSafeGenres(game).map((genre, idx) => (
-                        <span
-                          key={idx}
-                          className="bg-[#7B3FE4]/20 text-[#A56BFA] px-2 py-1 rounded text-xs"
-                        >
-                          {genre}
-                        </span>
-                      ))}
+                    {/* Rating con estrellas */}
+                    <div className="flex items-center justify-between mb-3">
+                      {getRatingStars(game?.rating || 0)}
+                      <span className="text-xs text-[#A593C7]">
+                        {game?.ratings_count?.toLocaleString() || 0} votos
+                      </span>
                     </div>
 
-                    <p className="text-sm text-[#A593C7] line-clamp-3 mb-4">
+                    {/* Fecha de lanzamiento */}
+                    {game?.released && (
+                      <p className="text-sm text-[#A593C7] mb-2">
+                        📅 {new Date(game.released).toLocaleDateString('es-ES', {
+                          year: 'numeric',
+                          month: 'long',
+                          day: 'numeric'
+                        })}
+                      </p>
+                    )}
+
+                    {/* Géneros */}
+                    {game?.genres && game.genres.length > 0 && (
+                      <div className="flex flex-wrap gap-1.5 mb-3">
+                        {game.genres.slice(0, 3).map((genre, idx) => (
+                          <span
+                            key={idx}
+                            className="bg-[#7B3FE4]/20 text-[#A56BFA] px-2 py-1 rounded text-xs"
+                          >
+                            {genre.name}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+
+                    {/* Descripción */}
+                    <p className="text-sm text-[#A593C7] line-clamp-2 mb-4 min-h-[2.5rem]">
                       {getDescription(game)}
                     </p>
 
                     <Link
-                      to={`/juegos/${getGameId(game)}`}
+                      to={game?.rawg_url || `/juegos/${game?.id}`}
+                      target={game?.rawg_url ? "_blank" : undefined}
+                      rel={game?.rawg_url ? "noopener noreferrer" : undefined}
                       className="w-full bg-[#7B3FE4] hover:bg-[#A56BFA] text-white text-center py-2 px-4 rounded-lg transition-colors font-medium block"
                     >
-                      Ver Detalles
+                      {game?.rawg_url ? 'Ver en RAWG' : 'Ver Detalles'}
                     </Link>
                   </div>
                 </div>
