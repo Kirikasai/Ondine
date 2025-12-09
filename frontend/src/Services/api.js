@@ -1,7 +1,8 @@
 const API_BASE = "http://localhost:8000/api";
+const REQUEST_TIMEOUT = 30000; // 30 segundos
 
 const handleResponse = async (response) => {
-  // Log status for debugging
+  // Log status para debugging
   console.log("📡 Response status:", response.status);
 
   // 204 No Content
@@ -11,7 +12,6 @@ const handleResponse = async (response) => {
     let errorMessage = `Error HTTP ${response.status}`;
     try {
       const errorData = await response.json();
-      // backend uses 'mensaje' or 'error'
       errorMessage =
         errorData.mensaje ||
         errorData.error ||
@@ -24,7 +24,7 @@ const handleResponse = async (response) => {
     throw new Error(errorMessage);
   }
 
-  // try parse json, else return text
+  // try json sino se devuelve texto
   try {
     return await response.json();
   } catch (e) {
@@ -32,7 +32,7 @@ const handleResponse = async (response) => {
   }
 };
 
-// Unified fetch helper with optional timeout and automatic JSON handling + auth header
+// Unified fetch y automatizado JSON handling + auth header
 async function fetchAPI(endpoint, options = {}) {
   const url = endpoint.startsWith("http") ? endpoint : `${API_BASE}${endpoint}`;
   console.log(`🔄 Haciendo request a: ${url}`);
@@ -43,7 +43,7 @@ async function fetchAPI(endpoint, options = {}) {
 
   try {
     const token =
-      typeof window !== "undefined" ? localStorage.getItem("token") : null;
+      typeof window !== "undefined" ? localStorage.getItem("auth_token") || localStorage.getItem("token") : null;
 
     const headers = {
       Accept: "application/json",
@@ -52,7 +52,7 @@ async function fetchAPI(endpoint, options = {}) {
 
     let body = options.body;
 
-    // If body is a plain object and not FormData, stringify it and set header
+    // si el body es un plain object y no un FormData, se usa stringify y se le da un header
     const isFormData =
       typeof FormData !== "undefined" && body instanceof FormData;
     const isPlainObject =
@@ -78,7 +78,6 @@ async function fetchAPI(endpoint, options = {}) {
       signal: controller.signal,
     };
 
-    // remove body for GET/HEAD
     if (
       (fetchOptions.method || "GET").toUpperCase() === "GET" ||
       (fetchOptions.method || "GET").toUpperCase() === "HEAD"
@@ -99,107 +98,148 @@ async function fetchAPI(endpoint, options = {}) {
   }
 }
 
-/* ==========================
-   Named API helpers
-   ========================== */
+async function fetchAuthAPI(endpoint, options = {}) {
+  try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT);
+
+    const url = `${API_BASE}${endpoint}`;
+    console.log(`🔐 Auth request a: ${url}`);
+
+    let body = options.body;
+    const isFormData = typeof FormData !== 'undefined' && body instanceof FormData;
+
+    const headers = {
+      Accept: 'application/json',
+      ...(options.headers || {}),
+    };
+
+    if (!isFormData) {
+      headers['Content-Type'] = headers['Content-Type'] || 'application/json';
+    }
+
+    // ✅ CRÍTICO: Leer token con clave consistente
+    const token = localStorage.getItem('token') || localStorage.getItem('auth_token');
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+      console.log("✅ Token agregado al header:", token.substring(0, 10) + '...');
+    } else {
+      console.warn("⚠️ Sin token en localStorage para petición autenticada");
+    }
+
+    if (body && typeof body === 'object' && !(body instanceof FormData)) {
+      body = JSON.stringify(body);
+    }
+
+    const fetchOptions = {
+      method: options.method || 'GET',
+      headers,
+      body,
+      signal: controller.signal,
+    };
+
+    if (['GET', 'HEAD'].includes(fetchOptions.method.toUpperCase())) {
+      delete fetchOptions.body;
+    }
+
+    const response = await fetch(url, fetchOptions);
+    clearTimeout(timeoutId);
+
+    console.log(`📡 Response status: ${response.status}`);
+
+    if (!response.ok) {
+      let errorMessage = `Error ${response.status}`;
+      try {
+        const errorData = await response.json();
+        errorMessage = errorData.error || errorData.mensaje || errorData.message || JSON.stringify(errorData);
+      } catch (e) {
+        const text = await response.text();
+        errorMessage = text || errorMessage;
+      }
+      throw new Error(errorMessage);
+    }
+
+    if (response.status === 204) return {};
+    return await response.json();
+  } catch (error) {
+    console.error('❌ Auth API Error:', error);
+    if (error.name === 'AbortError') {
+      throw new Error('Timeout en la solicitud');
+    }
+    throw error;
+  }
+}
+
+/*
+    API helpers
+*/
 export const authAPI = {
-  // Métodos básicos
-  get: async (endpoint) => {
-    return fetchAPI(endpoint, {
-      method: "GET",
+  // Auth
+  login: (credentials) => fetchAPI('/auth/login', {
+    method: 'POST',
+    body: credentials
+  }),
+  
+  register: (userData) => fetchAPI('/auth/register', {
+    method: 'POST',
+    body: userData
+  }),
+  
+  logout: () => fetchAuthAPI('/auth/logout', { method: 'POST' }),
+  
+  getUser: () => fetchAuthAPI('/auth/user'),
+  
+  updateProfile: (data) => fetchAuthAPI('/auth/profile', {
+    method: 'PUT',
+    body: data
+  }),
+
+  // ✅ Método GET genérico (lo que faltaba)
+  get: (endpoint) => fetchAuthAPI(endpoint),
+
+  // Blogs
+  getBlogs: (params = {}) => {
+    const qp = new URLSearchParams();
+    Object.keys(params).forEach(k => {
+      if (params[k] !== undefined) qp.append(k, params[k]);
+    });
+    const qs = qp.toString() ? `?${qp.toString()}` : '';
+    return fetchAPI(`/blogs${qs}`);
+  },
+
+  getBlog: (id) => fetchAPI(`/blogs/${id}`),
+
+  // ✅ Comentarios de blogs
+  getBlogComments: (blogId) => {
+    return fetchAPI(`/blogs/${blogId}/comentarios`);
+  },
+
+  addBlogComment: (blogId, contenido) => {
+    return fetchAuthAPI(`/blogs/${blogId}/comentarios`, {
+      method: 'POST',
+      body: { contenido }
     });
   },
 
-  post: async (endpoint, data = {}) => {
-    return fetchAPI(endpoint, {
-      method: "POST",
-      body: data,
-    });
-  },
-
-  put: async (endpoint, data = {}) => {
-    return fetchAPI(endpoint, {
-      method: "PUT",
-      body: data,
-    });
-  },
-
-  delete: async (endpoint) => {
-    return fetchAPI(endpoint, {
-      method: "DELETE",
-    });
-  },
-
-  // Métodos específicos de auth
-  login: async (credentials) => {
-    return fetchAPI("/auth/login", {
-      method: "POST",
-      body: credentials,
-    });
-  },
-
-  register: async (userData) => {
-    return fetchAPI("/auth/register", {
-      method: "POST",
-      body: userData,
-    });
-  },
-
-  logout: async () => {
-    return fetchAPI("/auth/logout", {
-      method: "POST",
-    });
-  },
-
-  getUser: async () => {
-    return fetchAPI("/auth/user");
-  },
-
-  updateProfile: async (userData) => {
-    return fetchAPI("/auth/profile", {
-      method: "PUT",
-      body: userData,
-    });
-  },
-
-  checkAuth: () => {
-    const token = localStorage.getItem("token");
-    return !!token;
-  },
-
-  getToken: () => {
-    return localStorage.getItem("token");
-  },
-  likeBlog: async (blogId) => {
-    return fetchAPI(`/blogs/${blogId}/like`, {
-      method: 'POST'
-    });
-  },
-
-  unlikeBlog: async (blogId) => {
-    return fetchAPI(`/blogs/${blogId}/like`, {
+  deleteBlogComment: (blogId, comentarioId) => {
+    return fetchAuthAPI(`/blogs/${blogId}/comentarios/${comentarioId}`, {
       method: 'DELETE'
     });
   },
 
-  checkBlogLike: async (blogId) => {
-    return fetchAPI(`/blogs/${blogId}/like/status`);
-  },
-
-  // Comentarios para blogs
-  getBlogComments: async (blogId) => {
-    return fetchAPI(`/blogs/${blogId}/comentarios`);
-  },
-
-  addBlogComment: async (blogId, comment) => {
-    return fetchAPI(`/blogs/${blogId}/comentarios`, {
-      method: 'POST',
-      body: comment
+  // ✅ Likes de blogs
+  likeBlog: (blogId) => {
+    return fetchAuthAPI(`/blogs/${blogId}/like`, {
+      method: 'POST'
     });
+  },
+
+  getBlogLikesInfo: (blogId) => {
+    return fetchAPI(`/blogs/${blogId}/likes`);
   }
 };
 
-export const giantbombAPI = {
+export const rawgAPI = {
   getJuegos: async (params = {}) => {
     const defaultParams = { pagina: 1, limite: 20 };
     const finalParams = { ...defaultParams, ...params };
@@ -212,26 +252,29 @@ export const giantbombAPI = {
     });
 
     const queryStr = queryParams.toString() ? `?${queryParams.toString()}` : "";
-    console.log("🔗 Solicitando:", `${API_BASE}/juegos${queryStr}`);
+    console.log("🔗 Solicitando RAWG:", `${API_BASE}/juegos${queryStr}`);
     return fetchAPI(`/juegos${queryStr}`);
   },
 
   buscarJuegos: async (termino) => {
     if (!termino || termino.trim() === "") return { juegos: [], total: 0 };
-    console.log("🔍 Buscando juegos:", termino);
+    console.log("🔍 Buscando en RAWG:", termino);
     return fetchAPI(`/juegos/buscar?q=${encodeURIComponent(termino)}`);
   },
 
   getGeneros: async () => {
-    console.log("📋 Solicitando géneros...");
+    console.log("📋 Solicitando géneros de RAWG...");
     return fetchAPI("/generos");
   },
 
   getPlataformas: async () => {
-    console.log("🖥️ Solicitando plataformas...");
+    console.log("🖥️ Solicitando plataformas de RAWG...");
     return fetchAPI("/plataformas");
   },
 };
+
+// Mantener alias para compatibilidad hacia atrás
+export const giantbombAPI = rawgAPI;
 
 export const newsAPI = {
   getNoticias: (params = {}) => {

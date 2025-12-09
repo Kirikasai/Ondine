@@ -4,7 +4,6 @@ namespace App\Http\Controllers;
 use App\Models\Blog;
 use App\Models\ComentarioBlog;
 use App\Models\LikeBlog;
-use App\Models\Usuario;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Validator;
@@ -55,21 +54,11 @@ class BlogController extends Controller
     // Público: Ver blog específico
     public function show($id)
     {
-        try {
-            $blog = Blog::with('usuario')->findOrFail($id);
-
-            return response()->json([
-                'blog' => $blog,
-                'usuario' => $blog->usuario,
-                'etiquetas' => $blog->etiquetas ? explode(',', $blog->etiquetas) : []
-            ]);
-
-        } catch (\Exception $e) {
-            return response()->json([
-                'error' => 'Blog no encontrado',
-                'detalles' => $e->getMessage()
-            ], 404);
+        $blog = Blog::with('usuario')->find($id);
+        if (!$blog) {
+            return response()->json(['mensaje' => 'Blog no encontrado'], 404);
         }
+        return response()->json(['blog' => $blog], 200);
     }
 
     // Protegido: Crear blog
@@ -196,66 +185,25 @@ class BlogController extends Controller
     // Obtener comentarios de un blog
     public function getComentarios($id)
     {
-        try {
-            $comentarios = ComentarioBlog::with('usuario')
-                ->where('blog_id', $id)
-                ->orderBy('creado_en', 'asc')
-                ->get();
-
-            return response()->json($comentarios);
-
-        } catch (\Exception $e) {
-            return response()->json([
-                'error' => 'Error al cargar comentarios',
-                'detalles' => $e->getMessage()
-            ], 500);
-        }
+        $comentarios = ComentarioBlog::where('blog_id', $id)
+            ->with('usuario')
+            ->orderBy('created_at', 'desc')
+            ->get();
+        return response()->json($comentarios, 200);
     }
 
     // Crear comentario
     public function crearComentario(Request $request, $id)
     {
-        // Verificar autenticación
-        if (!Auth::check()) {
-            return response()->json(['error' => 'No autorizado'], 401);
-        }
+        $request->validate(['contenido' => 'required|string|max:5000']);
 
-        $validator = Validator::make($request->all(), [
-            'contenido' => 'required|string|min:1|max:1000'
+        $comentario = ComentarioBlog::create([
+            'blog_id' => $id,
+            'usuario_id' => Auth::id(),
+            'contenido' => $request->contenido
         ]);
 
-        if ($validator->fails()) {
-            return response()->json([
-                'error' => 'Error de validación',
-                'detalles' => $validator->errors()
-            ], 422);
-        }
-
-        try {
-            // Verificar que el blog existe
-            Blog::findOrFail($id);
-
-            $comentario = ComentarioBlog::create([
-                'blog_id' => $id,
-                'usuario_id' => Auth::id(),
-                'contenido' => $request->contenido,
-                'creado_en' => now()
-            ]);
-
-            // Cargar relación de usuario para la respuesta
-            $comentario->load('usuario');
-
-            return response()->json([
-                'mensaje' => 'Comentario publicado',
-                'comentario' => $comentario
-            ], 201);
-
-        } catch (\Exception $e) {
-            return response()->json([
-                'error' => 'Error al publicar comentario',
-                'detalles' => $e->getMessage()
-            ], 500);
-        }
+        return response()->json(['comentario' => $comentario->load('usuario')], 201);
     }
 
     // Eliminar comentario
@@ -296,75 +244,32 @@ class BlogController extends Controller
     // Dar like a un blog
     public function darLike($id)
     {
-        // Verificar autenticación
-        if (!Auth::check()) {
-            return response()->json(['error' => 'No autorizado'], 401);
+        $user = Auth::user();
+        $like = LikeBlog::where('blog_id', $id)
+            ->where('usuario_id', $user->id)
+            ->first();
+
+        if ($like) {
+            $like->delete();
+            $user_liked = false;
+        } else {
+            LikeBlog::create(['blog_id' => $id, 'usuario_id' => $user->id]);
+            $user_liked = true;
         }
 
-        try {
-            // Verificar que el blog existe
-            $blog = Blog::findOrFail($id);
-
-            // Verificar si ya dio like
-            $likeExistente = LikeBlog::where('blog_id', $id)
-                ->where('usuario_id', Auth::id())
-                ->first();
-
-            if ($likeExistente) {
-                // Quitar like
-                $likeExistente->delete();
-                $accion = 'like_removed';
-            } else {
-                // Dar like
-                LikeBlog::create([
-                    'blog_id' => $id,
-                    'usuario_id' => Auth::id(),
-                    'creado_en' => now()
-                ]);
-                $accion = 'like_added';
-            }
-
-            // Obtener conteo actualizado de likes
-            $likesCount = LikeBlog::where('blog_id', $id)->count();
-
-            return response()->json([
-                'accion' => $accion,
-                'likes_count' => $likesCount,
-                'user_liked' => $accion === 'like_added'
-            ]);
-
-        } catch (\Exception $e) {
-            return response()->json([
-                'error' => 'Error al procesar like',
-                'detalles' => $e->getMessage()
-            ], 500);
-        }
+        $likes_count = LikeBlog::where('blog_id', $id)->count();
+        return response()->json(['likes_count' => $likes_count, 'user_liked' => $user_liked]);
     }
 
     // Obtener información de likes
     public function getLikesInfo($id)
     {
-        try {
-            $likesCount = LikeBlog::where('blog_id', $id)->count();
+        $likes_count = LikeBlog::where('blog_id', $id)->count();
+        $user_liked = Auth::check() ? LikeBlog::where('blog_id', $id)
+            ->where('usuario_id', Auth::id())
+            ->exists() : false;
 
-            $userLiked = false;
-            if (Auth::check()) {
-                $userLiked = LikeBlog::where('blog_id', $id)
-                    ->where('usuario_id', Auth::id())
-                    ->exists();
-            }
-
-            return response()->json([
-                'likes_count' => $likesCount,
-                'user_liked' => $userLiked
-            ]);
-
-        } catch (\Exception $e) {
-            return response()->json([
-                'error' => 'Error al cargar información de likes',
-                'detalles' => $e->getMessage()
-            ], 500);
-        }
+        return response()->json(['likes_count' => $likes_count, 'user_liked' => $user_liked]);
     }
 
     // MÉTODOS ADICIONALES

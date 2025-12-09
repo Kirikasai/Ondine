@@ -14,6 +14,7 @@ use App\Http\Controllers\GiantBombController;
 use App\Http\Controllers\TwitchController;
 use App\Http\Controllers\NoticiasController;
 use App\Http\Controllers\FavoritoController;
+use App\Http\Controllers\RawgController;
 
 // Rutas públicas (sin autenticación)
 Route::get('/test-conexion', function () {
@@ -41,14 +42,12 @@ Route::get('/guias/{id}', [GuiaController::class, 'show']);
 Route::get('/clanes', [ClanController::class, 'index']);
 Route::get('/clanes/{id}', [ClanController::class, 'show']);
 
-// Rutas GiantBomb (públicas)
-Route::get('/verificar-giantbomb', [GiantBombController::class, 'verificarCredenciales']);
-Route::get('/test-ultra-simple', [GiantBombController::class, 'testUltraSimple']);
-Route::get('/test-generos', [GiantBombController::class, 'testGeneros']);
-Route::get('/juegos', [GiantBombController::class, 'getJuegos']);
-Route::get('/juegos/buscar', [GiantBombController::class, 'buscarJuegos']);
-Route::get('/generos', [GiantBombController::class, 'getGeneros']);
-Route::get('/plataformas', [GiantBombController::class, 'getPlataformas']);
+// Rutas RAWG (públicas)
+Route::get('/juegos', [RawgController::class, 'getJuegos']);
+Route::get('/generos', [RawgController::class, 'getGeneros']);
+Route::get('/plataformas', [RawgController::class, 'getPlataformas']);
+Route::get('/juegos/buscar', [RawgController::class, 'buscarJuegos']);
+Route::get('/verificar-rawg', [RawgController::class, 'verificarCredenciales']);
 
 // Rutas noticias (públicas)
 Route::get('/noticias', [NoticiasController::class, 'getNoticias']);
@@ -60,6 +59,7 @@ Route::middleware('auth:sanctum')->group(function () {
     // Auth
     Route::post('/auth/logout', [UsuarioController::class, 'logout']);
     Route::get('/auth/user', [UsuarioController::class, 'user']);
+    Route::get('/auth/profile', [UsuarioController::class, 'profile']);
     Route::put('/auth/profile', [UsuarioController::class, 'updateProfile']);
 
     // Rutas de favoritos (requieren autenticación)
@@ -86,10 +86,11 @@ Route::middleware('auth:sanctum')->group(function () {
 
         // Comentarios
         Route::post('/blogs/{id}/comentarios', [BlogController::class, 'crearComentario']);
-        Route::delete('/blogs/{blogId}/comentarios/{comentarioId}', [BlogController::class, 'eliminarComentario']);
+        Route::delete('/blogs/{id}/comentarios/{comentarioId}', [BlogController::class, 'eliminarComentario']);
 
         // Likes
         Route::post('/blogs/{id}/like', [BlogController::class, 'darLike']);
+        Route::delete('/blogs/{id}/like', [BlogController::class, 'darLike']); // mismo método para toggle
     });
 
     Route::post('/foros/{foroId}/hilos', [ForoController::class, 'crearHilo']);

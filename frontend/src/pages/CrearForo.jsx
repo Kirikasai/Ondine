@@ -1,18 +1,26 @@
 import { useState } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { authAPI } from "../Services/api";
-import { ArrowLeft, Save } from "lucide-react";
+import { ArrowLeft, Save, MessageSquare } from "lucide-react";
 
-export default function CrearBlog() {
+export default function CrearForo() {
   const [form, setForm] = useState({
     titulo: "",
     contenido: "",
-    etiquetas: ""
+    categoria: "general"
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const navigate = useNavigate();
+
+  const categorias = [
+    { id: "general", label: "General" },
+    { id: "ayuda", label: "Ayuda y Soporte" },
+    { id: "estrategia", label: "Estrategia y Tácticas" },
+    { id: "eventos", label: "Eventos" },
+    { id: "comunidad", label: "Comunidad" }
+  ];
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -24,7 +32,6 @@ export default function CrearBlog() {
     setError("");
     setSuccess("");
 
-    // Validaciones
     if (!form.titulo.trim()) {
       setError("El título es requerido");
       return;
@@ -37,38 +44,34 @@ export default function CrearBlog() {
       setError("El contenido es requerido");
       return;
     }
-    if (form.contenido.length < 100) {
-      setError("El contenido debe tener al menos 100 caracteres");
+    if (form.contenido.length < 20) {
+      setError("El contenido debe tener al menos 20 caracteres");
       return;
     }
 
     setLoading(true);
 
     try {
-      const response = await authAPI.get('/blogs', {
+      const response = await fetch('http://localhost:8000/api/foros', {
         method: 'POST',
-        body: {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
           titulo: form.titulo,
           contenido: form.contenido,
-          etiquetas: form.etiquetas
-        }
-      });
+          categoria: form.categoria
+        })
+      }).then(r => r.json());
 
-      // Alternativa: usar fetchAuthAPI directamente si authAPI no tiene POST para blogs
-      // const response = await fetch('http://localhost:8000/api/blogs', {
-      //   method: 'POST',
-      //   headers: {
-      //     'Authorization': `Bearer ${localStorage.getItem('token')}`,
-      //     'Content-Type': 'application/json'
-      //   },
-      //   body: JSON.stringify(form)
-      // }).then(r => r.json());
+      if (response.error) throw new Error(response.error);
 
-      setSuccess("✅ Blog creado exitosamente");
-      setTimeout(() => navigate(`/blogs/${response.blog.id}`), 1500);
+      setSuccess("✅ Tema creado exitosamente");
+      setTimeout(() => navigate(`/foros/${response.foro?.id || response.data?.id}`), 1500);
     } catch (err) {
-      console.error("Error creando blog:", err);
-      setError(`❌ ${err.message || "Error al crear el blog"}`);
+      console.error("Error creando foro:", err);
+      setError(`❌ ${err.message}`);
     } finally {
       setLoading(false);
     }
@@ -77,21 +80,19 @@ export default function CrearBlog() {
   return (
     <div className="min-h-screen bg-[#1B1128] text-[#E4D9F9] pt-20">
       <div className="max-w-4xl mx-auto px-4 py-8">
-        {/* Header */}
         <div className="flex items-center gap-4 mb-8">
           <button
-            onClick={() => navigate("/blogs")}
+            onClick={() => navigate("/foros")}
             className="p-2 hover:bg-[#7B3FE4]/20 rounded-lg transition-colors"
           >
             <ArrowLeft size={20} />
           </button>
           <div>
-            <h1 className="text-3xl font-bold text-[#A56BFA]">Crear nuevo Blog</h1>
-            <p className="text-[#A593C7]">Comparte tu conocimiento con la comunidad</p>
+            <h1 className="text-3xl font-bold text-[#A56BFA]">Crear nuevo tema</h1>
+            <p className="text-[#A593C7]">Inicia una conversación con la comunidad</p>
           </div>
         </div>
 
-        {/* Mensajes */}
         {error && (
           <div className="bg-red-900/20 border border-red-700 text-red-400 rounded-lg p-4 mb-6">
             {error}
@@ -103,20 +104,37 @@ export default function CrearBlog() {
           </div>
         )}
 
-        {/* Formulario */}
         <div className="bg-[#2D1B3A] border border-[#7B3FE4]/30 rounded-2xl p-8">
           <form onSubmit={handleSubmit} className="space-y-6">
+            {/* Categoría */}
+            <div>
+              <label className="block text-sm font-medium text-[#E4D9F9] mb-2">
+                Categoría
+              </label>
+              <select
+                name="categoria"
+                value={form.categoria}
+                onChange={handleChange}
+                disabled={loading}
+                className="w-full px-4 py-3 bg-[#E4D9F9]/10 border border-[#A56BFA]/30 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-[#7B3FE4] transition-colors"
+              >
+                {categorias.map(cat => (
+                  <option key={cat.id} value={cat.id}>{cat.label}</option>
+                ))}
+              </select>
+            </div>
+
             {/* Título */}
             <div>
               <label className="block text-sm font-medium text-[#E4D9F9] mb-2">
-                Título del Blog <span className="text-red-500">*</span>
+                Título <span className="text-red-500">*</span>
               </label>
               <input
                 type="text"
                 name="titulo"
                 value={form.titulo}
                 onChange={handleChange}
-                placeholder="Escribe un título atractivo y descriptivo"
+                placeholder="Escribe una pregunta o tema de discusión"
                 maxLength={255}
                 className="w-full px-4 py-3 bg-[#E4D9F9]/10 border border-[#A56BFA]/30 rounded-lg text-white placeholder-[#A593C7] focus:outline-none focus:ring-2 focus:ring-[#7B3FE4] transition-colors"
                 disabled={loading}
@@ -129,60 +147,27 @@ export default function CrearBlog() {
             {/* Contenido */}
             <div>
               <label className="block text-sm font-medium text-[#E4D9F9] mb-2">
-                Contenido <span className="text-red-500">*</span>
+                Descripción <span className="text-red-500">*</span>
               </label>
               <textarea
                 name="contenido"
                 value={form.contenido}
                 onChange={handleChange}
-                placeholder="Escribe el contenido de tu blog (mínimo 100 caracteres). Puedes usar HTML para formato."
-                rows={12}
+                placeholder="Desarrolla tu pregunta o tema con detalles"
+                rows={8}
                 className="w-full px-4 py-3 bg-[#E4D9F9]/10 border border-[#A56BFA]/30 rounded-lg text-white placeholder-[#A593C7] focus:outline-none focus:ring-2 focus:ring-[#7B3FE4] transition-colors resize-none"
                 disabled={loading}
               />
               <p className="text-xs text-[#A593C7] mt-1">
-                {form.contenido.length}/5000 caracteres (mínimo 100)
-              </p>
-              <p className="text-xs text-[#A593C7] mt-2">
-                💡 Consejo: Usa &lt;h2&gt;, &lt;p&gt;, &lt;strong&gt;, &lt;ul&gt;, etc. para estructurar tu contenido.
+                {form.contenido.length}/5000 caracteres (mínimo 20)
               </p>
             </div>
-
-            {/* Etiquetas */}
-            <div>
-              <label className="block text-sm font-medium text-[#E4D9F9] mb-2">
-                Etiquetas (opcional)
-              </label>
-              <input
-                type="text"
-                name="etiquetas"
-                value={form.etiquetas}
-                onChange={handleChange}
-                placeholder="Elden Ring, Build, Guía (separadas por comas)"
-                className="w-full px-4 py-3 bg-[#E4D9F9]/10 border border-[#A56BFA]/30 rounded-lg text-white placeholder-[#A593C7] focus:outline-none focus:ring-2 focus:ring-[#7B3FE4] transition-colors"
-                disabled={loading}
-              />
-              <p className="text-xs text-[#A593C7] mt-1">
-                Separa las etiquetas con comas para que otros las encuentren fácilmente
-              </p>
-            </div>
-
-            {/* Vista previa */}
-            {form.titulo && (
-              <div className="bg-[#1B1128] p-4 rounded-lg border border-[#7B3FE4]/20">
-                <p className="text-xs text-[#A593C7] mb-2">📋 Vista previa:</p>
-                <h3 className="text-lg font-bold text-white mb-2">{form.titulo}</h3>
-                <p className="text-sm text-[#A593C7] line-clamp-3">
-                  {form.contenido.replace(/<[^>]*>/g, '').substring(0, 150)}...
-                </p>
-              </div>
-            )}
 
             {/* Botones */}
             <div className="flex gap-4 pt-6">
               <button
                 type="button"
-                onClick={() => navigate("/blogs")}
+                onClick={() => navigate("/foros")}
                 disabled={loading}
                 className="flex-1 px-6 py-3 border border-[#7B3FE4] text-[#7B3FE4] hover:bg-[#7B3FE4]/10 rounded-lg transition-colors disabled:opacity-50"
               >
@@ -200,8 +185,8 @@ export default function CrearBlog() {
                   </>
                 ) : (
                   <>
-                    <Save size={18} />
-                    Publicar Blog
+                    <MessageSquare size={18} />
+                    Crear Tema
                   </>
                 )}
               </button>

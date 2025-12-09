@@ -17,6 +17,7 @@ import EditarPerfil from "./pages/EditarPerfil";
 import BlogPage from './components/BlogPage';
 import ForoPage from './components/ForoPage';
 import EventoPage from './components/EventoPage';
+import ProtectedRoute from "./components/ProtectedRoute";
 
 function App() {
   return (
@@ -33,8 +34,8 @@ function App() {
             <Route path="/blogs" element={<Blogs />} />
             <Route path="/foros" element={<Foros />} />
             <Route path="/eventos" element={<Eventos />} />
-            <Route path="/perfil" element={<Perfil />} />
-            <Route path="/editar-perfil" element={<EditarPerfil />} />
+            <Route path="/perfil" element={<ProtectedRoute><Perfil /></ProtectedRoute>} />
+            <Route path="/editar-perfil" element={<ProtectedRoute><EditarPerfil /></ProtectedRoute>} />
             <Route path="/directos" element={<Directos />} />
             <Route path="/foros/:id" element={<ForoPage />} />
             <Route path="/blogs/:id" element={<BlogPage />} />

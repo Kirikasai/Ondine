@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback } from "react";
-import { giantbombAPI } from "../Services/api";
+import { rawgAPI } from "../Services/api";  // ← Cambiar aquí
 
 export default function Juegos() {
   const [juegos, setJuegos] = useState([]);
@@ -27,7 +27,7 @@ export default function Juegos() {
       setLoading(true);
       setError(null);
 
-      console.log('🎮 Iniciando carga de juegos...');
+      console.log('🎮 Iniciando carga de juegos desde RAWG...');
       console.log('📋 Filtros actuales:', {
         searchTerm,
         generoSeleccionado,
@@ -37,19 +37,15 @@ export default function Juegos() {
 
       let data;
 
-      // Si hay término de búsqueda, usar la función de búsqueda
       if (searchTerm.trim()) {
-        console.log('🔍 Usando búsqueda:', searchTerm);
-        data = await giantbombAPI.buscarJuegos(searchTerm);
-      }
-      // Caso general: obtener todos los juegos con paginación
-      else {
+        console.log('🔍 Usando búsqueda RAWG:', searchTerm);
+        data = await rawgAPI.buscarJuegos(searchTerm);  // ← Cambiar aquí
+      } else {
         const params = {
           pagina: paginacion.pagina,
           limite: 20,
         };
 
-        // Agregar filtros solo si no son los valores por defecto
         if (generoSeleccionado !== "todos") {
           params.genero = generoSeleccionado;
         }
@@ -58,24 +54,18 @@ export default function Juegos() {
           params.plataforma = plataformaSeleccionada;
         }
 
-        console.log('📊 Parámetros para API:', params);
-        data = await giantbombAPI.getJuegos(params);
+        console.log('📡 Parámetros para RAWG:', params);
+        data = await rawgAPI.getJuegos(params);  // ← Cambiar aquí
       }
 
-      console.log('📦 Datos recibidos de API:', data);
+      console.log('✅ Datos recibidos de RAWG:', data);
 
-      // ✅ Manejar diferentes estructuras de respuesta
       const juegosData = data.juegos || data.data || [];
       const total = data.paginacion?.total_juegos || data.total || data.meta?.total || 0;
       const paginaActual = data.paginacion?.pagina_actual || data.pagina || data.meta?.current_page || 1;
       const totalPaginas = data.paginacion?.total_paginas || data.totalPaginas || data.meta?.last_page || Math.ceil(total / 20);
 
-      console.log('📊 Estadísticas:', {
-        juegosRecibidos: juegosData.length,
-        total,
-        paginaActual,
-        totalPaginas
-      });
+      console.log('✅ Juegos procesados:', juegosData.length);
 
       setJuegos(juegosData);
       setPaginacion({
@@ -84,8 +74,6 @@ export default function Juegos() {
         totalPaginas: totalPaginas,
       });
 
-      console.log(`✅ ${juegosData.length} juegos cargados desde GiantBomb`);
-      
     } catch (err) {
       console.error("❌ Error cargando juegos:", err);
       setError(err.message || "No se pudieron cargar los juegos");
@@ -95,15 +83,14 @@ export default function Juegos() {
     }
   }, [searchTerm, generoSeleccionado, plataformaSeleccionada, paginacion.pagina]);
 
-  // Cargar juegos cuando cambien los filtros o página
   useEffect(() => {
     cargarJuegos();
   }, [cargarJuegos]);
 
   const cargarGeneros = async () => {
     try {
-      const data = await giantbombAPI.getGeneros();
-      console.log("📊 Datos de géneros recibidos:", data);
+      const data = await rawgAPI.getGeneros();  // ← Cambiar aquí
+      console.log("✅ Géneros RAWG recibidos:", data);
       
       let generos = [];
       
@@ -116,46 +103,37 @@ export default function Juegos() {
       }
       
       const generosProcesados = generos.map(genero => {
-        if (typeof genero === 'string') return genero;
+        if (typeof genero === 'string') return { id: genero, nombre: genero };
         if (genero?.name) return { id: genero.id, nombre: genero.name };
         if (genero?.nombre) return { id: genero.id, nombre: genero.nombre };
         return { id: genero.id, nombre: String(genero) };
       }).filter(genero => genero.nombre); 
       
-      console.log("🎯 Géneros procesados:", generosProcesados);
+      console.log("✅ Géneros procesados:", generosProcesados);
       setGenerosDisponibles(generosProcesados);
       
     } catch (err) {
-      console.error('Error cargando géneros:', err);
-      // Géneros por defecto de GiantBomb
+      console.error('❌ Error cargando géneros:', err);
+      // Géneros por defecto de RAWG
       setGenerosDisponibles([
-        { id: "2", nombre: "Point and Click" },
-        { id: "4", nombre: "Fighting" },
-        { id: "5", nombre: "Shooter" },
-        { id: "7", nombre: "Music" },
-        { id: "8", nombre: "Platform" },
-        { id: "9", nombre: "Puzzle" },
-        { id: "10", nombre: "Racing" },
-        { id: "11", nombre: "Real Time Strategy (RTS)" },
-        { id: "12", nombre: "Role-playing (RPG)" },
-        { id: "13", nombre: "Simulator" },
-        { id: "14", nombre: "Sport" },
-        { id: "15", nombre: "Strategy" },
-        { id: "16", nombre: "Turn-based strategy (TBS)" },
-        { id: "24", nombre: "Tactical" },
-        { id: "25", nombre: "Hack and slash/Beat 'em up" },
-        { id: "26", nombre: "Quiz/Trivia" },
-        { id: "31", nombre: "Adventure" },
-        { id: "32", nombre: "Indie" },
-        { id: "33", nombre: "Arcade" }
+        { id: "4", nombre: "Action" },
+        { id: "3", nombre: "Adventure" },
+        { id: "5", nombre: "RPG" },
+        { id: "10", nombre: "Strategy" },
+        { id: "2", nombre: "Shooter" },
+        { id: "14", nombre: "Simulation" },
+        { id: "7", nombre: "Puzzle" },
+        { id: "11", nombre: "Arcade" },
+        { id: "83", nombre: "Platformer" },
+        { id: "1", nombre: "Racing" }
       ]);
     }
   };
 
   const cargarPlataformas = async () => {
     try {
-      const data = await giantbombAPI.getPlataformas();
-      console.log("🎮 Datos de plataformas recibidos:", data);
+      const data = await rawgAPI.getPlataformas();  // ← Cambiar aquí
+      console.log("✅ Plataformas RAWG recibidas:", data);
       
       let plataformas = [];
       
@@ -174,21 +152,21 @@ export default function Juegos() {
         return { id: plat.id, nombre: String(plat) };
       }).filter(plat => plat.nombre);
       
-      console.log("🖥️ Plataformas procesadas:", plataformasProcesadas);
+      console.log("✅ Plataformas procesadas:", plataformasProcesadas);
       setPlataformasDisponibles(plataformasProcesadas);
       
     } catch (err) {
-      console.error('Error cargando plataformas:', err);
-      // Plataformas por defecto de GiantBomb
+      console.error('❌ Error cargando plataformas:', err);
+      // Plataformas por defecto de RAWG
       setPlataformasDisponibles([
-        { id: "94", nombre: "PC" },
-        { id: "145", nombre: "PlayStation 5" },
-        { id: "146", nombre: "PlayStation 4" },
-        { id: "162", nombre: "Xbox Series X" },
-        { id: "163", nombre: "Xbox One" },
-        { id: "157", nombre: "Nintendo Switch" },
-        { id: "139", nombre: "iOS" },
-        { id: "34", nombre: "Android" }
+        { id: "1", nombre: "PC" },
+        { id: "2", nombre: "PlayStation" },
+        { id: "3", nombre: "Xbox" },
+        { id: "4", nombre: "Nintendo" },
+        { id: "5", nombre: "macOS" },
+        { id: "6", nombre: "Linux" },
+        { id: "7", nombre: "iOS" },
+        { id: "8", nombre: "Android" }
       ]);
     }
   };
@@ -296,11 +274,6 @@ export default function Juegos() {
     return plataformas.slice(0, 2); 
   };
 
-  const getRating = (game) => {
-    // GiantBomb no tiene rating como IGDB
-    return "N/A";
-  };
-
   const getReleaseDate = (game) => {
     // GiantBomb usa original_release_date
     if (game?.released) {
@@ -340,7 +313,7 @@ export default function Juegos() {
             Catálogo de Videojuegos
           </h1>
           <p className="text-lg text-[#A593C7] max-w-2xl mx-auto">
-            Explora miles de juegos con información detallada de GiantBomb
+            Explora miles de juegos con información detallada de RAWG 
           </p>
         </div>
 
@@ -403,7 +376,7 @@ export default function Juegos() {
         <div className="text-center mb-8">
           <p className="text-[#A593C7]">
             {loading ? (
-              "Cargando juegos desde GiantBomb..."
+              <>Cargando juegos desde RAWG...</>
             ) : (
               <>
                 Mostrando <span className="text-[#A56BFA] font-bold">{juegos.length}</span> de{" "}
@@ -453,7 +426,7 @@ export default function Juegos() {
         {loading && (
           <div className="text-center py-12">
             <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-[#A56BFA]"></div>
-            <p className="mt-4 text-[#A593C7]">Cargando juegos desde GiantBomb...</p>
+            <p className="mt-4 text-[#A593C7]">Cargando juegos desde RAWG...</p> {/* ← Cambiar aquí */}
           </div>
         )}
 
@@ -533,7 +506,7 @@ export default function Juegos() {
                       onClick={() => handleVerDetalles(game)}
                       className="w-full bg-[#7B3FE4] hover:bg-[#A56BFA] text-white text-center py-2 px-4 rounded-lg transition-colors font-medium"
                     >
-                      Ver en GiantBomb
+                      Ver en RAWG {/* ← Cambiar aquí (era "Ver en GiantBomb") */}
                     </button>
                   </div>
                 </div>
@@ -546,7 +519,7 @@ export default function Juegos() {
                 <button
                   onClick={() => cambiarPagina(paginacion.pagina - 1)}
                   disabled={paginacion.pagina === 1}
-                  className="bg-[#7B3FE4] hover:bg-[#A56BFA] disabled:bg-[#4A2B6B] text-white px-6 py-2 rounded-lg transition-colors"
+                  className="bg-[#7B3FE4] hover:bg-[#A56BFA] disabled:bg-[#4A2B6L] text-white px-6 py-2 rounded-lg transition-colors"
                 >
                   Anterior
                 </button>
@@ -558,7 +531,7 @@ export default function Juegos() {
                 <button
                   onClick={() => cambiarPagina(paginacion.pagina + 1)}
                   disabled={paginacion.pagina === paginacion.totalPaginas}
-                  className="bg-[#7B3FE4] hover:bg-[#A56BombFA] disabled:bg-[#4A2B6B] text-white px-6 py-2 rounded-lg transition-colors"
+                  className="bg-[#7B3FE4] hover:bg-[#A56BFA] disabled:bg-[#4A2B6L] text-white px-6 py-2 rounded-lg transition-colors"
                 >
                   Siguiente
                 </button>
@@ -585,7 +558,7 @@ export default function Juegos() {
         {/* Información de la API */}
         <div className="mt-12 text-center">
           <p className="text-[#A593C7] text-sm">
-            Datos proporcionados por <a href="https://www.giantbomb.com" target="_blank" rel="noopener noreferrer" className="text-[#A56BFA] hover:underline">GiantBomb API</a>
+            Datos proporcionados por <a href="https://rawg.io" target="_blank" rel="noopener noreferrer" className="text-[#A56BFA] hover:underline">RAWG API</a>
           </p>
         </div>
       </div>

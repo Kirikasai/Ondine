@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom";
 import { useEffect, useState } from "react";
-import { giantbombAPI } from "../Services/api";
+import { rawgAPI } from "../Services/api";  // ← Cambiar aquí
 import logo from "../assets/ondine.png";
 
 export default function Home() {
@@ -13,25 +13,25 @@ export default function Home() {
       try {
         setLoading(true);
         setError(null);
-        console.log("🔄 Iniciando carga de juegos destacados...");
-        const data = await giantbombAPI.getJuegos({
+        console.log("🔄 Cargando juegos destacados desde RAWG...");
+        const data = await rawgAPI.getJuegos({  // ← Cambiar aquí
           limite: 3,
           pagina: 1,
         });
 
         const juegos = data.data || data.juegos || [];
 
-        console.log("✅ Juegos encontrados:", juegos.length, juegos);
+        console.log("✅ Juegos RAWG encontrados:", juegos.length, juegos);
         setFeaturedGames(juegos);
 
         if (juegos.length === 0) {
           setError("No se pudieron cargar los juegos destacados");
         }
       } catch (error) {
-        console.error("❌ Error cargando juegos destacados:", error);
+        console.error("❌ Error cargando juegos RAWG:", error);
         try {
-          console.log("🔄 Intentando carga alternativa...");
-          const dataAlternativa = await giantbombAPI.getJuegos({ limite: 3 });
+          console.log("🔄 Intentando carga alternativa de RAWG...");
+          const dataAlternativa = await rawgAPI.getJuegos({ limite: 3 });  // ← Cambiar aquí
           const juegosAlternativos =
             dataAlternativa.data || dataAlternativa.juegos || [];
 
@@ -51,8 +51,8 @@ export default function Home() {
 
     fetchFeaturedGames();
   }, []);
-
-  const getSafeImage = (game) => {
+/* Obtener Imgen del Juego */
+  const getImage = (game) => {
     if (game?.background_image) {
       return game.background_image;
     }
@@ -69,15 +69,15 @@ export default function Home() {
     }
     return "/placeholder-game.jpg";
   };
-
-  const getSafeName = (game) => {
+/* Obtener Nombre del Juego */
+  const getName = (game) => {
     if (!game || !game.name) {
       return "Nombre no disponible";
     }
     return game.name;
   };
-
-  const getSafeDescription = (game) => {
+/* Obtener Descrpcion del Juego */
+  const getDescription = (game) => {
     if (game?.summary) {
       return game.summary.length > 120
         ? `${game.summary.substring(0, 120)}...`
@@ -224,8 +224,8 @@ export default function Home() {
                 >
                   <div className="relative overflow-hidden">
                     <img
-                      src={getSafeImage(game)}
-                      alt={getSafeName(game)}
+                      src={getImage(game)}
+                      alt={getName(game)}
                       className="w-full h-48 object-cover group-hover:scale-110 transition-transform duration-300"
                       onError={(e) => {
                         e.target.src = "/placeholder-game.jpg";
@@ -237,7 +237,7 @@ export default function Home() {
                   </div>
                   <div className="p-6">
                     <h4 className="font-bold text-lg mb-2 text-[#E4D9F9] group-hover:text-[#A56BFA] transition-colors line-clamp-2">
-                      {getSafeName(game)}
+                      {getName(game)}
                     </h4>
 
                     <div className="flex flex-wrap gap-1 mb-3">
@@ -252,7 +252,7 @@ export default function Home() {
                     </div>
 
                     <p className="text-sm text-[#A593C7] line-clamp-3 mb-4">
-                      {getSafeDescription(game)}
+                      {getDescription(game)}
                     </p>
 
                     <Link

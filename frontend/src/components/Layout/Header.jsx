@@ -10,38 +10,25 @@ export default function Header() {
 
   useEffect(() => {
     checkAuth();
-
-    function handleOutside(e) {
-      if (communityRef.current && !communityRef.current.contains(e.target)) {
-        setOpenCommunity(false);
-      }
-    }
-
-    function handleKey(e) {
-      if (e.key === "Escape") setOpenCommunity(false);
-    }
-
-    document.addEventListener("mousedown", handleOutside);
-    document.addEventListener("touchstart", handleOutside);
-    document.addEventListener("keydown", handleKey);
-
-    return () => {
-      document.removeEventListener("mousedown", handleOutside);
-      document.removeEventListener("touchstart", handleOutside);
-      document.removeEventListener("keydown", handleKey);
-    };
+    // Escuchar cambios en localStorage (login/logout desde otra pestaña)
+    window.addEventListener('storage', checkAuth);
+    return () => window.removeEventListener('storage', checkAuth);
   }, []);
 
   const checkAuth = () => {
-    const token = localStorage.getItem("auth_token");
-    setIsAuthenticated(!!token);
+    const token = localStorage.getItem('token') || localStorage.getItem('auth_token');
+    const user = localStorage.getItem('user');
+    console.log("🔐 Token en Header:", token ? '✅ Presente' : '❌ Ausente');
+    console.log("👤 User en Header:", user ? '✅ Presente' : '❌ Ausente');
+    setIsAuthenticated(!!(token && user));
   };
 
   const handleLogout = () => {
-    localStorage.removeItem("auth_token");
-    localStorage.removeItem("user");
+    localStorage.removeItem('token');
+    localStorage.removeItem('auth_token');
+    localStorage.removeItem('user');
     setIsAuthenticated(false);
-    navigate("/");
+    window.location.href = "/";
   };
 
   return (

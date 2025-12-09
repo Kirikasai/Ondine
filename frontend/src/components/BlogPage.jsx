@@ -17,7 +17,8 @@ import {
   Star,
   Zap,
   Sword,
-  Shield
+  Shield,
+  Trash2
 } from "lucide-react";
 
 export default function BlogDetailPage() {
@@ -29,308 +30,51 @@ export default function BlogDetailPage() {
   const [usuario, setUsuario] = useState(null);
   const [comentarios, setComentarios] = useState([]);
   const [nuevoComentario, setNuevoComentario] = useState("");
+  const [likesInfo, setLikesInfo] = useState({ likes_count: 0, user_liked: false });
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
 
   useEffect(() => {
+    checkAuth();
     cargarBlog();
     cargarComentarios();
+    cargarLikesInfo();
   }, [id]);
+
+  const checkAuth = () => {
+    const token = localStorage.getItem('auth_token');
+    setIsAuthenticated(!!token);
+  };
 
   const cargarBlog = async () => {
     try {
       setLoading(true);
       setError("");
 
-      console.log("🔄 Cargando blog gaming con ID:", id);
-
+      console.log("🔄 Cargando blog con ID:", id);
+      
+      // ✅ Usar authAPI.get en lugar de getBlog
       const response = await authAPI.get(`/blogs/${id}`);
       console.log("📊 Respuesta de blog:", response);
 
-      const blogData = response.data || response;
-      console.log("📋 Datos del blog:", blogData);
+      // Manejar distintos formatos de respuesta
+      let blogData = response.blog || response.data?.blog || response.data || response;
 
-      if (!blogData) {
-        throw new Error("No se recibieron datos del blog");
+      if (!blogData || !blogData.id) {
+        throw new Error("No se recibieron datos del blog válidos");
       }
 
+      console.log("✅ Blog cargado:", blogData);
       setBlog(blogData);
       
-      // Cargar información del usuario
-      if (blogData.usuario_id) {
-        try {
-          const userResponse = await authAPI.get(`/usuarios/${blogData.usuario_id}`);
-          const userData = userResponse.data || userResponse;
-          setUsuario(userData);
-        } catch (userError) {
-          console.error("Error cargando usuario:", userError);
-        }
+      // Usar usuario incluido en la respuesta
+      if (blogData.usuario) {
+        setUsuario(blogData.usuario);
       }
       
     } catch (err) {
       console.error("❌ Error cargando blog:", err);
       setError("No se pudo cargar el blog solicitado");
-
-      // Sólo usar datos de ejemplo en desarrollo o si se pide demo via ?demo=1
-      const isDev = process.env.NODE_ENV === "development";
-      const urlParams = new URLSearchParams(window.location.search);
-      const demoMode = urlParams.get("demo") === "1";
-
-      if (isDev || demoMode) {
-        // datos de ejemplo (mantén el array que ya tenías)
-        const blogsGaming = [
-          {
-            id: 1,
-            titulo: "Guía Completa: Build Óptimo de Mago en Elden Ring - Parche 1.10",
-            contenido: `
-              <h2>🎯 Introducción</h2>
-              <p>Esta build de mago te permitirá dominar Elden Ring desde el early game hasta los jefes finales. Enfocada en daño a distancia y control de combate.</p>
-              
-              <h2>⚡ Atributos Recomendados</h2>
-              <div class="bg-[#1B1128] p-4 rounded-lg my-4 border border-[#7B3FE4]/30">
-                <ul class="space-y-2">
-                  <li class="flex items-center gap-2"><strong>Inteligencia:</strong> <span class="text-[#A56BFA]">80</span> (Máximo daño de hechizos)</li>
-                  <li class="flex items-center gap-2"><strong>Vigor:</strong> <span class="text-[#A56BFA]">50</span> (Supervivencia)</li>
-                  <li class="flex items-center gap-2"><strong>Mente:</strong> <span class="text-[#A56BFA]">40</span> (FP para hechizos)</li>
-                  <li class="flex items-center gap-2"><strong>Destreza:</strong> <span class="text-[#A56BFA]">18</span> (Requerimiento de armas)</li>
-                </ul>
-              </div>
-              
-              <h2>🔮 Hechizos Esenciales</h2>
-              <h3>S-Tier (Imprescindibles)</h3>
-              <ul>
-                <li><strong>Cometa de Azur:</strong> Daño masivo a jefes</li>
-                <li><strong>Roca Brillante:</strong> Daño rápido y eficiente</li>
-                <li><strong>Niebla de la noche:</strong> Ignora escudos enemigos</li>
-                <li><strong>Lluvia de estrellas:</strong> Excelente contra grupos</li>
-              </ul>
-              
-              <h2>⚔️ Equipamiento</h2>
-              <h3>Armas Principales</h3>
-              <ul>
-                <li><strong>Báculo de Lusat:</strong> +10% daño de hechizos (consumo extra de FP)</li>
-                <li><strong>Báculo de la Prisionera:</strong> Scaling S en Inteligencia</li>
-                <li><strong>Báculo de Carian:</strong> Mejor para hechizos de espadas</li>
-              </ul>
-              
-              <h3>Talismanes</h3>
-              <ul>
-                <li><strong>Icono de la Diosa Velada:</strong> Regeneración continua de FP</li>
-                <li><strong>Escarabeo de Graven-Masa:</strong> +8% daño de hechizos</li>
-                <li><strong>Anillo de Filigrana de Dios:</strong> -25% coste de FP</li>
-                <li><strong>Sello de Radagon:</strong> +30 a casting speed</li>
-              </ul>
-              
-              <h2>🎮 Estrategias de Combate</h2>
-              <h3>Contra Jefes Ágiles (Malenia, Maliketh)</h3>
-              <p>Usa <strong>Niebla de la noche</strong> seguido de <strong>Roca Brillante</strong> para daño constante que no puede esquivar.</p>
-              
-              <h3>Contra Grupos</h3>
-              <p><strong>Explosión de Cristal</strong> seguido de <strong>Lluvia de estrellas</strong> para control de área efectivo.</p>
-              
-              <h3>Contra Jefes Grandes (Dragones, Gigantes)</h3>
-              <p><strong>Cometa de Azur</strong> con Física de Fuerza Desatada para daño masivo.</p>
-              
-              <h2>🌟 Consejos Avanzados</h2>
-              <ul>
-                <li>Usa el Frasco de Lágrima Cerúlea para recuperar FP en peleas largas</li>
-                <li>Aprende a esquivar hacia adelante para mantener distancia óptima</li>
-                <li>Combina hechizos con armas encantadas para versatilidad</li>
-              </ul>
-            `,
-            usuario_id: 1,
-            etiquetas: "Elden Ring, Build, Mago, PvE, Guía",
-            creado_en: new Date().toISOString(),
-            vistas: 12500,
-            likes: 890,
-            juego: "Elden Ring",
-            dificultad: "Media",
-            tiempo_lectura: "8 min"
-          },
-          {
-            id: 2,
-            titulo: "Análisis Técnico: Optimización de Cyberpunk 2077 2.1 para PC Media",
-            contenido: `
-              <h2>🎮 Introducción</h2>
-              <p>Con la actualización 2.1 de Cyberpunk 2077, muchos jugadores buscan el equilibrio perfecto entre gráficos y rendimiento. Este análisis te ayudará a maximizar tu experiencia.</p>
-              
-              <h2>💻 Configuraciones Recomendadas por Hardware</h2>
-              
-              <h3>🟢 PC Baja Gama (GTX 1660, RX 580)</h3>
-              <div class="bg-[#1B1128] p-4 rounded-lg my-4 border border-[#7B3FE4]/30">
-                <ul>
-                  <li><strong>Calidad Gráfica:</strong> Medio/Bajo</li>
-                  <li><strong>DLSS/FSR:</strong> Calidad</li>
-                  <li><strong>Sombras:</strong> Medio</li>
-                  <li><strong>Reflejos:</strong> Bajo</li>
-                  <li><strong>Población:</strong> Medio</li>
-                  <li><strong>FPS Esperados:</strong> 45-60</li>
-                </ul>
-              </div>
-              
-              <h3>🟡 PC Media (RTX 3060, RX 6700 XT)</h3>
-              <div class="bg-[#1B1128] p-4 rounded-lg my-4 border border-[#7B3FE4]/30">
-                <ul>
-                  <li><strong>Calidad Gráfica:</strong> Alto</li>
-                  <li><strong>DLSS/FSR:</strong> Calidad</li>
-                  <li><strong>Ray Tracing:</strong> Desactivado</li>
-                  <li><strong>Sombras:</strong> Alto</li>
-                  <li><strong>FPS Esperados:</strong> 60-80</li>
-                </ul>
-              </div>
-              
-              <h2>⚙️ Configuraciones Críticas para Rendimiento</h2>
-              
-              <h3>Opciones que MÁS afectan el FPS</h3>
-              <ul>
-                <li><strong>Contacto con las Sombras:</strong> Alto impacto - Recomendado: Medio</li>
-                <li><strong>Calidad de Sombras:</strong> Alto impacto - Recomendado: Alto</li>
-                <li><strong>Nivel de Detalle:</strong> Medio impacto - Recomendado: Alto</li>
-                <li><strong>Densidad de Población:</strong> Medio impacto - Recomendado: Alto</li>
-              </ul>
-              
-              <h2>🔧 Tweaks Avanzados</h2>
-              
-              <h3>Archivo de Configuración (Cyberpunk 2077\\engine\\config)</h3>
-              <pre><code>[Streaming]
-MaxMemoryInPool = 4096
-MemoryLimit = 8192</code></pre>
-              
-              <h3>Configuración NVIDIA Control Panel</h3>
-              <ul>
-                <li>Low Latency Mode: Ultra</li>
-                <li>Power Management: Prefer Maximum Performance</li>
-                <li>Texture Filtering: High Performance</li>
-              </ul>
-              
-              <h2>📊 Resultados de Benchmark</h2>
-              <p>Con RTX 3060 + Ryzen 5 5600X:</p>
-              <ul>
-                <li><strong>1080p Alto + DLSS Calidad:</strong> 75 FPS promedio</li>
-                <li><strong>1080p Ultra + DLSS Calidad:</strong> 62 FPS promedio</li>
-                <li><strong>1440p Alto + DLSS Calidad:</strong> 55 FPS promedio</li>
-              </ul>
-            `,
-            usuario_id: 2,
-            etiquetas: "Cyberpunk 2077, Optimización, PC, Rendimiento, Guía",
-            creado_en: new Date().toISOString(),
-            vistas: 8400,
-            likes: 450,
-            juego: "Cyberpunk 2077",
-            dificultad: "Baja",
-            tiempo_lectura: "6 min"
-          },
-          {
-            id: 3,
-            titulo: "Meta Actual en Valorant: Mejores Agentes y Composición Ideal Episodio 7",
-            contenido: `
-              <h2>🎯 Meta del Episodio 7 Acto 2</h2>
-              <p>El meta actual de Valorant ha evolucionado significativamente con las últimas actualizaciones. Te presentamos el análisis completo.</p>
-              
-              <h2>🏆 Tier List de Agentes</h2>
-              
-              <h3>S-Tier (Must Pick)</h3>
-              <div class="bg-green-500/10 p-4 rounded-lg my-4 border border-green-500/30">
-                <ul class="space-y-2">
-                  <li><strong>Jett:</strong> Sigue siendo la duelista definitiva</li>
-                  <li><strong>Omen:</strong> Versatilidad y movilidad incomparables</li>
-                  <li><strong>Killjoy:</strong> Control de zona absoluto</li>
-                  <li><strong>Skye:</strong> Información y curación combinadas</li>
-                </ul>
-              </div>
-              
-              <h3>A-Tier (Muy Fuertes)</h3>
-              <div class="bg-blue-500/10 p-4 rounded-lg my-4 border border-blue-500/30">
-                <ul class="space-y-2">
-                  <li><strong>Raze:</strong> Daño explosivo y movilidad</li>
-                  <li><strong>Viper:</strong> Control de mapa definitivo</li>
-                  <li><strong>Sova:</strong> Información constante</li>
-                  <li><strong>Fade:</strong> Alternativa agresiva a Sova</li>
-                </ul>
-              </div>
-              
-              <h2>🎮 Composición de Equipo Ideal</h2>
-              
-              <h3>Composición Meta Actual</h3>
-              <div class="bg-[#1B1128] p-4 rounded-lg my-4 border border-[#7B3FE4]/30">
-                <ul>
-                  <li><strong>Duelista:</strong> Jett/Raze</li>
-                  <li><strong>Iniciador:</strong> Skye/Sova</li>
-                  <li><strong>Controlador:</strong> Omen/Viper</li>
-                  <li><strong>Centinela:</strong> Killjoy/Cypher</li>
-                </ul>
-              </div>
-              
-              <h2>🗺️ Mejores Agentes por Mapa</h2>
-              
-              <h3>Bind</h3>
-              <ul>
-                <li><strong>S-Tier:</strong> Viper, Raze, Skye</li>
-                <li><strong>A-Tier:</strong> Omen, Killjoy, Jett</li>
-              </ul>
-              
-              <h3>Ascent</h3>
-              <ul>
-                <li><strong>S-Tier:</strong> Killjoy, Omen, Jett</li>
-                <li><strong>A-Tier:</strong> Sova, Skye, Cypher</li>
-              </ul>
-              
-              <h3>Haven</h3>
-              <ul>
-                <li><strong>S-Tier:</strong> Omen, Jett, Skye</li>
-                <li><strong>A-Tier:</strong> Killjoy, Sova, Raze</li>
-              </ul>
-              
-              <h2>💡 Estrategias de Meta</h2>
-              
-              <h3>Default Setup</h3>
-              <p>La configuración por defecto más efectiva incluye:</p>
-              <ul>
-                <li>Controlador estableciendo humos tempranos</li>
-                <li>Centinela preparando setups defensivos</li>
-                <li>Iniciador buscando información</li>
-                <li>Duelista listo para entrar</li>
-              </ul>
-              
-              <h3>Execute Plays</h3>
-              <p>Coordinación ideal para executes:</p>
-              <ul>
-                <li>Humos del controlador</li>
-                <li>Revelaciones del iniciador</li>
-                <li>Utilidad de daño de la duelista</li>
-                <li>Flancos del segundo duelista</li>
-              </ul>
-              
-              <h2>📈 Consejos para Subir de Rango</h2>
-              <ul>
-                <li>Enfócate en 2-3 agentes máximo</li>
-                <li>Aprende line ups básicos para cada mapa</li>
-                <li>Mejora tu comunicación de callouts</li>
-                <li>Analiza tus demos para identificar errores</li>
-              </ul>
-            `,
-            usuario_id: 3,
-            etiquetas: "Valorant, Meta, Esports, Estrategia, Competitive",
-            creado_en: new Date().toISOString(),
-            vistas: 15600,
-            likes: 1200,
-            juego: "Valorant",
-            dificultad: "Alta",
-            tiempo_lectura: "10 min"
-          }
-        ];
-
-        const blogEjemplo = blogsGaming.find(b => b.id === parseInt(id)) || blogsGaming[0];
-        setBlog(blogEjemplo);
-        
-        // Simular usuario también (como ya hacía antes)
-        setUsuario({
-          id: blogEjemplo.usuario_id,
-          nombre_usuario: "GameMaster",
-          reputacion: 500
-        });
-      } else {
-        // en producción no usar fallback: dejar blog null para mostrar error al usuario
-        setBlog(null);
-      }
+      setBlog(null);
     } finally {
       setLoading(false);
     }
@@ -338,99 +82,110 @@ MemoryLimit = 8192</code></pre>
 
   const cargarComentarios = async () => {
     try {
-      const response = await authAPI.get(`/blogs/${id}/comentarios`);
-      const comentariosData = response.data || response || [];
-      setComentarios(Array.isArray(comentariosData) ? comentariosData : []);
+      const response = await authAPI.getBlogComments(id);
+      const comentariosData = Array.isArray(response) ? response : (response.data || []);
+      setComentarios(comentariosData);
     } catch (err) {
       console.error("Error cargando comentarios:", err);
-      
-      // Comentarios de ejemplo GAMING
-      const comentariosEjemplo = {
-        1: [
-          {
-            id: 1,
-            contenido: "Excelente guía! Solo añadiría que el talismán de Radagon es imprescindible para el casting speed. Sin él, los hechizos son muy lentos contra jefes como Malenia.",
-            usuario_id: 4,
-            usuario: {
-              id: 4,
-              nombre_usuario: "SoulsVeteran",
-              reputacion: 320
-            },
-            creado_en: new Date().toISOString(),
-            likes: 25
-          },
-          {
-            id: 2,
-            contenido: "¿Recomiendas algún hechizo específico para Radagon/Elden Beast? Esa pelea me está costando mucho con mi build de mago.",
-            usuario_id: 5,
-            usuario: {
-              id: 5,
-              nombre_usuario: "TarnishedNoob",
-              reputacion: 45
-            },
-            creado_en: new Date().toISOString(),
-            likes: 8
-          }
-        ],
-        2: [
-          {
-            id: 3,
-            contenido: "Los tweaks del archivo de configuración me subieron 15 FPS en áreas densas. Gran descubrimiento!",
-            usuario_id: 6,
-            usuario: {
-              id: 6,
-              nombre_usuario: "PCOptimizer",
-              reputacion: 180
-            },
-            creado_en: new Date().toISOString(),
-            likes: 18
-          }
-        ],
-        3: [
-          {
-            id: 4,
-            contenido: "Falta mencionar a Astra en el tier list. Después de los buffs está volviendo al meta en mapas como Split y Pearl.",
-            usuario_id: 7,
-            usuario: {
-              id: 7,
-              nombre_usuario: "ValorantAnalyst",
-              reputacion: 290
-            },
-            creado_en: new Date().toISOString(),
-            likes: 32
-          }
-        ]
-      };
+      setComentarios([]);
+    }
+  };
 
-      setComentarios(comentariosEjemplo[parseInt(id)] || []);
+  const cargarLikesInfo = async () => {
+    try {
+      const response = await authAPI.getBlogLikesInfo(id);
+      setLikesInfo({
+        likes_count: response.likes_count || 0,
+        user_liked: response.user_liked || false
+      });
+    } catch (err) {
+      console.error("Error cargando información de likes:", err);
     }
   };
 
   const handleLike = async () => {
+    if (!isAuthenticated) {
+      navigate('/login');
+      return;
+    }
+
     try {
-      await authAPI.post(`/blogs/${id}/like`);
-      // Recargar blog para actualizar contadores
-      cargarBlog();
+      const response = await authAPI.likeBlog(id);
+      
+      setLikesInfo({
+        likes_count: response.likes_count,
+        user_liked: response.user_liked
+      });
     } catch (err) {
       console.error("Error dando like:", err);
+      if (err.message?.includes('401')) {
+        navigate('/login');
+      }
     }
   };
 
   const handleComentarioSubmit = async (e) => {
     e.preventDefault();
+    
+    if (!isAuthenticated) {
+      navigate('/login');
+      return;
+    }
+
     if (!nuevoComentario.trim()) return;
 
     try {
-      await authAPI.post(`/blogs/${id}/comentarios`, {
-        contenido: nuevoComentario
-      });
+      const response = await authAPI.addBlogComment(id, nuevoComentario);
 
+      const nuevoComentarioData = response.comentario || response.data?.comentario || response;
+      
+      // Agregar el nuevo comentario a la lista
+      setComentarios(prev => [...prev, nuevoComentarioData]);
       setNuevoComentario("");
-      cargarComentarios();
     } catch (err) {
       console.error("Error enviando comentario:", err);
+      if (err.message?.includes('401')) {
+        navigate('/login');
+      }
     }
   };
+
+  const handleEliminarComentario = async (comentarioId) => {
+    if (!window.confirm("¿Estás seguro de que quieres eliminar este comentario?")) {
+      return;
+    }
+
+    try {
+      await authAPI.deleteBlogComment(id, comentarioId);
+      setComentarios(prev => prev.filter(c => c.id !== comentarioId));
+    } catch (err) {
+      console.error("Error eliminando comentario:", err);
+    }
+  };
+
+  function parseTags(etiquetas) {
+    if (!etiquetas) return [];
+    if (Array.isArray(etiquetas)) {
+      return etiquetas.map(t => (typeof t === 'string' ? t : (t.name || t.label || JSON.stringify(t))));
+    }
+    if (typeof etiquetas === 'object') {
+      return [etiquetas.name || etiquetas.label || JSON.stringify(etiquetas)];
+    }
+    if (typeof etiquetas === 'string') {
+      const raw = etiquetas.trim();
+      // try JSON array string first
+      if (raw.startsWith('[') || raw.startsWith('{')) {
+        try {
+          const parsed = JSON.parse(raw);
+          if (Array.isArray(parsed)) return parsed.map(String);
+          if (typeof parsed === 'object' && parsed !== null) return [parsed.name || parsed.label || JSON.stringify(parsed)];
+        } catch (e) { /* not JSON */ }
+      }
+      // otherwise split by commas
+      return raw.split(',').map(s => s.trim()).filter(Boolean);
+    }
+    return [];
+  }
 
   if (loading) {
     return (
@@ -459,6 +214,8 @@ MemoryLimit = 8192</code></pre>
       </div>
     );
   }
+
+  const etiquetas = parseTags(blog?.etiquetas);
 
   return (
     <div className="min-h-screen bg-[#1B1128] text-[#E4D9F9] pt-20">
@@ -496,15 +253,11 @@ MemoryLimit = 8192</code></pre>
             )}
           </div>
 
-          {blog?.etiquetas && (
+          {etiquetas.length > 0 && (
             <div className="flex flex-wrap gap-2 mb-4">
-              {blog.etiquetas.split(',').map((etiqueta, index) => (
-                <span
-                  key={index}
-                  className="bg-[#7B3FE4]/20 text-[#A56BFA] px-3 py-1 rounded-full text-sm flex items-center gap-1"
-                >
-                  <Tag size={14} />
-                  {etiqueta.trim()}
+              {etiquetas.map((etiqueta, idx) => (
+                <span key={idx} className="bg-[#7B3FE4]/20 text-[#A56BFA] px-3 py-1 rounded-full text-sm">
+                  #{etiqueta}
                 </span>
               ))}
             </div>
@@ -552,10 +305,12 @@ MemoryLimit = 8192</code></pre>
             
             <button 
               onClick={handleLike}
-              className="flex items-center gap-2 hover:text-[#A56BFA] transition-colors"
+              className={`flex items-center gap-2 transition-colors ${
+                likesInfo.user_liked ? 'text-red-500' : 'text-[#A593C7] hover:text-red-400'
+              }`}
             >
-              <Heart size={18} />
-              <span className="text-white font-medium">{blog?.likes || 0}</span>
+              <Heart size={18} fill={likesInfo.user_liked ? "currentColor" : "none"} />
+              <span className="text-white font-medium">{likesInfo.likes_count}</span>
               <span className="text-[#A593C7]">likes</span>
             </button>
             
@@ -578,10 +333,14 @@ MemoryLimit = 8192</code></pre>
           <div className="flex flex-wrap gap-4 mt-8 pt-8 border-t border-[#7B3FE4]/30">
             <button 
               onClick={handleLike}
-              className="flex items-center gap-2 bg-[#7B3FE4] hover:bg-[#A56BFA] text-white px-4 py-2 rounded-lg transition-colors"
+              className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${
+                likesInfo.user_liked 
+                  ? 'bg-red-500 hover:bg-red-600 text-white' 
+                  : 'bg-[#7B3FE4] hover:bg-[#A56BFA] text-white'
+              }`}
             >
-              <Heart size={18} />
-              Me Gusta
+              <Heart size={18} fill={likesInfo.user_liked ? "currentColor" : "none"} />
+              {likesInfo.user_liked ? 'Quitar Like' : 'Me Gusta'}
             </button>
             
             <button className="flex items-center gap-2 border border-[#7B3FE4] text-[#7B3FE4] hover:bg-[#7B3FE4] hover:text-white px-4 py-2 rounded-lg transition-colors">
@@ -604,24 +363,37 @@ MemoryLimit = 8192</code></pre>
           </h2>
           
           {/* Formulario de Comentario */}
-          <form onSubmit={handleComentarioSubmit} className="mb-8">
-            <textarea
-              value={nuevoComentario}
-              onChange={(e) => setNuevoComentario(e.target.value)}
-              placeholder="Comparte tu opinión, experiencia o preguntas sobre esta guía..."
-              rows="4"
-              className="w-full bg-[#1B1128] border border-[#7B3FE4]/30 rounded-lg p-4 text-white placeholder-[#A593C7] focus:outline-none focus:border-[#A56BFA] resize-none"
-            />
-            <div className="flex justify-end mt-4">
+          {!isAuthenticated ? (
+            <div className="text-center py-8 mb-8">
+              <MessageCircle size={48} className="mx-auto text-[#A593C7] mb-4" />
+              <p className="text-[#A593C7] mb-4">Inicia sesión para comentar</p>
               <button
-                type="submit"
-                disabled={!nuevoComentario.trim()}
-                className="bg-[#7B3FE4] hover:bg-[#A56BFA] disabled:bg-[#7B3FE4]/50 disabled:cursor-not-allowed text-white px-6 py-2 rounded-lg transition-colors"
+                onClick={() => navigate('/login')}
+                className="bg-[#7B3FE4] hover:bg-[#A56BFA] text-white px-6 py-2 rounded-lg transition-colors"
               >
-                Publicar Comentario
+                Iniciar Sesión
               </button>
             </div>
-          </form>
+          ) : (
+            <form onSubmit={handleComentarioSubmit} className="mb-8">
+              <textarea
+                value={nuevoComentario}
+                onChange={(e) => setNuevoComentario(e.target.value)}
+                placeholder="Comparte tu opinión, experiencia o preguntas sobre esta guía..."
+                rows="4"
+                className="w-full bg-[#1B1128] border border-[#7B3FE4]/30 rounded-lg p-4 text-white placeholder-[#A593C7] focus:outline-none focus:border-[#A56BFA] resize-none"
+              />
+              <div className="flex justify-end mt-4">
+                <button
+                  type="submit"
+                  disabled={!nuevoComentario.trim()}
+                  className="bg-[#7B3FE4] hover:bg-[#A56BFA] disabled:bg-[#7B3FE4]/50 disabled:cursor-not-allowed text-white px-6 py-2 rounded-lg transition-colors"
+                >
+                  Publicar Comentario
+                </button>
+              </div>
+            </form>
+          )}
           
           {/* Lista de Comentarios */}
           <div className="space-y-6">
@@ -644,6 +416,17 @@ MemoryLimit = 8192</code></pre>
                       <span className="text-[#A593C7] text-sm">
                         {comentario.creado_en ? new Date(comentario.creado_en).toLocaleDateString('es-ES') : 'Fecha no disponible'}
                       </span>
+                      
+                      {/* Botón eliminar comentario (solo para el autor) */}
+                      {isAuthenticated && comentario.usuario_id === usuario?.id && (
+                        <button 
+                          onClick={() => handleEliminarComentario(comentario.id)}
+                          className="text-red-400 hover:text-red-300 transition-colors ml-auto"
+                          title="Eliminar comentario"
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      )}
                     </div>
                     
                     <p className="text-[#E4D9F9] mb-3">{comentario.contenido}</p>
@@ -667,7 +450,9 @@ MemoryLimit = 8192</code></pre>
             <div className="text-center py-8">
               <MessageCircle size={48} className="mx-auto text-[#A593C7] mb-4" />
               <p className="text-[#A593C7]">Aún no hay comentarios</p>
-              <p className="text-[#A593C7] text-sm mt-1">Sé el primero en comentar</p>
+              <p className="text-[#A593C7] text-sm mt-1">
+                {isAuthenticated ? 'Sé el primero en comentar' : 'Inicia sesión para comentar'}
+              </p>
             </div>
           )}
         </div>

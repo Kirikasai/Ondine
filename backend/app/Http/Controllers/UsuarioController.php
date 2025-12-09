@@ -6,8 +6,8 @@ use App\Models\Usuario;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
-use Illuminate\Support\Facades\Log; // Agregar este use
-use Illuminate\Support\Facades\Storage; // Para manejar archivos
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Storage;
 
 class UsuarioController extends Controller
 {

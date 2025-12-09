@@ -35,22 +35,20 @@ export default function LoginForm() {
       
       console.log("✅ Login exitoso:", res);
       
-      // ✅ Guardar token y usuario para futuras peticiones autenticadas
+      // ✅ Guardar token con clave consistente (usa 'token', no 'auth_token')
       if (res.token) {
-        localStorage.setItem('auth_token', res.token);
+        localStorage.setItem('token', res.token);
+        localStorage.setItem('auth_token', res.token); // backup para compatibilidad
         if (res.usuario) {
           localStorage.setItem('user', JSON.stringify(res.usuario));
-        } else if (res.user) {
-          localStorage.setItem('user', JSON.stringify(res.user));
         }
       }
 
-      setMensaje("✅ " + (res.mensaje || "Sesión iniciada correctamente"));
+      setMensaje("✅ Sesión iniciada correctamente");
       
-      // Redirigir después de un breve delay
       setTimeout(() => {
-        navigate("/dashboard"); // o la ruta que prefieras
-      }, 1000);
+        window.location.href = "/perfil"; // fuerza recarga para que Header se actualice
+      }, 500);
       
     } catch (err) {
       console.error("❌ Error completo en login:", err);
