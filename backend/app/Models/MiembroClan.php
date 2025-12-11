@@ -1,5 +1,4 @@
 <?php
-// app/Models/MiembroClan.php
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
@@ -7,7 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 class MiembroClan extends Model
 {
     protected $table = 'miembros_clan';
-    public $timestamps = false; 
+    public $timestamps = false;
     const CREATED_AT = 'unido_en';
     const UPDATED_AT = null;
 

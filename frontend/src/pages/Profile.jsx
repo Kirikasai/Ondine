@@ -15,9 +15,9 @@ import {
   Mail,
   Star,
   Clock,
-  Radio, // AÑADIDO
-  Twitch, // AÑADIDO
-  Youtube // AÑADIDO
+  Radio, 
+  Twitch, 
+  Youtube 
 } from "lucide-react";
 
 function Avatar({ user, size = 128 }) {

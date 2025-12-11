@@ -180,7 +180,7 @@ class BlogController extends Controller
         }
     }
 
-    // SISTEMA DE COMENTARIOS
+    // COMENTARIOS
 
     // Obtener comentarios de un blog
     public function getComentarios($id)
@@ -239,7 +239,7 @@ class BlogController extends Controller
         }
     }
 
-    // SISTEMA DE LIKES
+    // LIKES
 
     // Dar like a un blog
     public function darLike($id)

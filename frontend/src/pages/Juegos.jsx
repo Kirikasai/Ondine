@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback } from "react";
-import { rawgAPI } from "../Services/api";  // ← Cambiar aquí
+import { rawgAPI } from "../Services/api";  
 
 export default function Juegos() {
   const [juegos, setJuegos] = useState([]);
@@ -39,7 +39,7 @@ export default function Juegos() {
 
       if (searchTerm.trim()) {
         console.log('🔍 Usando búsqueda RAWG:', searchTerm);
-        data = await rawgAPI.buscarJuegos(searchTerm);  // ← Cambiar aquí
+        data = await rawgAPI.buscarJuegos(searchTerm);  
       } else {
         const params = {
           pagina: paginacion.pagina,
@@ -55,7 +55,7 @@ export default function Juegos() {
         }
 
         console.log('📡 Parámetros para RAWG:', params);
-        data = await rawgAPI.getJuegos(params);  // ← Cambiar aquí
+        data = await rawgAPI.getJuegos(params);  
       }
 
       console.log('✅ Datos recibidos de RAWG:', data);
@@ -89,7 +89,7 @@ export default function Juegos() {
 
   const cargarGeneros = async () => {
     try {
-      const data = await rawgAPI.getGeneros();  // ← Cambiar aquí
+      const data = await rawgAPI.getGeneros();  
       console.log("✅ Géneros RAWG recibidos:", data);
       
       let generos = [];
@@ -132,7 +132,7 @@ export default function Juegos() {
 
   const cargarPlataformas = async () => {
     try {
-      const data = await rawgAPI.getPlataformas();  // ← Cambiar aquí
+      const data = await rawgAPI.getPlataformas();  
       console.log("✅ Plataformas RAWG recibidas:", data);
       
       let plataformas = [];
@@ -221,110 +221,7 @@ export default function Juegos() {
       </div>
     );
   };
-
-  const getSafeImage = (game) => {
-    // GiantBomb usa image.medium_url o image.small_url
-    if (game?.background_image) {
-      return game.background_image;
-    }
-    
-    if (game?.image?.medium_url) {
-      return game.image.medium_url;
-    }
-    
-    if (game?.image?.small_url) {
-      return game.image.small_url;
-    }
-    
-    if (game?.cover?.image_id) {
-      return `https://images.igdb.com/igdb/image/upload/t_cover_big/${game.cover.image_id}.jpg`;
-    }
-
-    return "https://images.unsplash.com/photo-1550745165-9bc0b252726f?w=400&h=200&fit=crop";
-  };
-
-  const getSafeName = (game) => {
-    if (!game || !game.name) {
-      return "Nombre no disponible";
-    }
-    return game.name;
-  };
-
-  const getSafeDescription = (game) => {
-    // GiantBomb usa 'deck' en lugar de 'summary'
-    if (game?.deck) {
-      return game.deck.length > 120 
-        ? `${game.deck.substring(0, 120)}...` 
-        : game.deck;
-    }
-    if (game?.summary) {
-      return game.summary.length > 120 
-        ? `${game.summary.substring(0, 120)}...` 
-        : game.summary;
-    }
-    if (game?.short_description) {
-      return game.short_description;
-    }
-    return "Descripción no disponible";
-  };
-
-  const getGenerosJuego = (game) => {
-    if (!game || !game.genres || game.genres.length === 0) {
-      return ["Sin género"];
-    }
-
-    const generos = game.genres.map((genero) => {
-      if (typeof genero === "string") {
-        return genero;
-      }
-      if (genero && genero.name) {
-        return genero.name;
-      }
-      return "Género";
-    });
-
-    return generos.slice(0, 2); 
-  };
-
-  const getPlataformasJuego = (game) => {
-    if (!game || !game.platforms || game.platforms.length === 0) {
-      return ["Sin plataforma"];
-    }
-
-    const plataformas = game.platforms.map((plat) => {
-      if (typeof plat === "string") {
-        return plat;
-      }
-      if (plat && plat.name) {
-        return plat.name;
-      }
-      return "Plataforma";
-    });
-
-    return plataformas.slice(0, 2); 
-  };
-
-  const getReleaseDate = (game) => {
-    // GiantBomb usa original_release_date
-    if (game?.released) {
-      return new Date(game.released).toLocaleDateString('es-ES', {
-        year: 'numeric',
-        month: 'short'
-      });
-    }
-    
-    if (game?.original_release_date) {
-      return new Date(game.original_release_date).toLocaleDateString('es-ES', {
-        year: 'numeric',
-        month: 'short'
-      });
-    }
-    
-    return "Próximamente";
-  };
-
   const handleVerDetalles = (game) => {
-    // GiantBomb usa site_detail_url
     if (game?.giantbomb_url) {
       window.open(game.giantbomb_url, '_blank');
     } else if (game?.site_detail_url) {

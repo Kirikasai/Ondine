@@ -31,7 +31,7 @@ export default function Home() {
         console.error("❌ Error cargando juegos RAWG:", error);
         try {
           console.log("🔄 Intentando carga alternativa de RAWG...");
-          const dataAlternativa = await rawgAPI.getJuegos({ limite: 3 });
+          const dataAlternativa = await rawgAPI.getJuegos({ limite: 2 });
           const juegosAlternativos =
             dataAlternativa.data || dataAlternativa.juegos || [];
 

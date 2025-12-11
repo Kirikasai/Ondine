@@ -91,7 +91,7 @@ class UsuarioController extends Controller
                     'correo' => $usuario->correo,
                     'reputacion' => $usuario->reputacion,
                     'creado_en' => $usuario->creado_en,
-                    'foto_perfil_url' => $usuario->foto_perfil_url, // Agregar esto
+                    'foto_perfil_url' => $usuario->foto_perfil_url, 
                 ],
                 'status' => 'success'
             ], 200);

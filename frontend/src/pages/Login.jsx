@@ -35,7 +35,7 @@ export default function LoginForm() {
       
       console.log("✅ Login exitoso:", res);
       
-      // ✅ Guardar token con clave consistente (usa 'token', no 'auth_token')
+      //  Guardar token con clave consistente (usa 'token', no 'auth_token')
       if (res.token) {
         localStorage.setItem('token', res.token);
         localStorage.setItem('auth_token', res.token); // backup para compatibilidad

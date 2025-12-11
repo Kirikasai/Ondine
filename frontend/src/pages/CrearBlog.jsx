@@ -53,17 +53,6 @@ export default function CrearBlog() {
           etiquetas: form.etiquetas
         }
       });
-
-      // Alternativa: usar fetchAuthAPI directamente si authAPI no tiene POST para blogs
-      // const response = await fetch('http://localhost:8000/api/blogs', {
-      //   method: 'POST',
-      //   headers: {
-      //     'Authorization': `Bearer ${localStorage.getItem('token')}`,
-      //     'Content-Type': 'application/json'
-      //   },
-      //   body: JSON.stringify(form)
-      // }).then(r => r.json());
-
       setSuccess("✅ Blog creado exitosamente");
       setTimeout(() => navigate(`/blogs/${response.blog.id}`), 1500);
     } catch (err) {

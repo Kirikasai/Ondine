@@ -194,7 +194,6 @@ export const authAPI = {
     body: data
   }),
 
-  // ✅ Método GET genérico (lo que faltaba)
   get: (endpoint) => fetchAuthAPI(endpoint),
 
   // Blogs
@@ -209,7 +208,7 @@ export const authAPI = {
 
   getBlog: (id) => fetchAPI(`/blogs/${id}`),
 
-  // ✅ Comentarios de blogs
+  //  Comentarios de blogs
   getBlogComments: (blogId) => {
     return fetchAPI(`/blogs/${blogId}/comentarios`);
   },
@@ -227,7 +226,7 @@ export const authAPI = {
     });
   },
 
-  // ✅ Likes de blogs
+  //  Likes de blogs
   likeBlog: (blogId) => {
     return fetchAuthAPI(`/blogs/${blogId}/like`, {
       method: 'POST'

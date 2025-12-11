@@ -38,7 +38,7 @@ class RawgController extends Controller
 
             if ($response->successful()) {
                 $data = $response->json();
-                Log::info("✅ RAWG exitoso - {$endpoint}", [
+                Log::info(" RAWG exitoso - {$endpoint}", [
                     'total_results' => $data['count'] ?? 0
                 ]);
                 return $data;
@@ -103,16 +103,16 @@ class RawgController extends Controller
                 ], 500);
             }
 
-            // ✅ Obtener el total ANTES del filtrado
+            //  Obtener el total ANTES del filtrado
             $totalJuegosRawg = $response['count'] ?? 0;
 
-            // ✅ LISTA NEGRA MUY ESPECÍFICA (solo juegos explícitos conocidos)
+            //  LISTA NEGRA MUY ESPECÍFICA (solo juegos explícitos conocidos)
             $juegosProhibidos = [
                 'tentacle van',
                 'tentacle-van',
             ];
 
-            // ✅ TAGS ADULTOS MUY ESPECÍFICOS (solo contenido sexual explícito)
+            //  TAGS ADULTOS MUY ESPECÍFICOS (solo contenido sexual explícito)
             $tagsAdultosMuyExplicitos = [
                 'sexual content',
                 'nsfw',
@@ -127,7 +127,7 @@ class RawgController extends Controller
                 $nombreJuego = strtolower($juego['name'] ?? '');
                 $slugJuego = strtolower($juego['slug'] ?? '');
 
-                // ✅ FILTRO 1: Verificar lista negra específica
+                //  FILTRO 1: Verificar lista negra específica
                 $estaProhibido = false;
                 foreach ($juegosProhibidos as $prohibido) {
                     $prohibidoLower = strtolower($prohibido);
@@ -142,7 +142,7 @@ class RawgController extends Controller
                     continue;
                 }
 
-                // ✅ FILTRO 2: Verificar tags adultos MUY ESPECÍFICOS
+                //  FILTRO 2: Verificar tags adultos 
                 $tags = array_map(fn($t) => strtolower($t['name'] ?? ''), $juego['tags'] ?? []);
                 $tieneContenidoAdultoExplicito = false;
 
@@ -158,7 +158,7 @@ class RawgController extends Controller
                     continue;
                 }
 
-                // ✅ FILTRO 3: Solo rating "Adults Only" (AO)
+                //  FILTRO 3: Solo rating "Adults Only" (AO)
                 $rating = strtolower($juego['esrb_rating']['name'] ?? '');
                 if ($rating === 'adults only' || $rating === 'ao') {
                     Log::info("🔞 Filtrado por rating AO: " . $juego['name']);
@@ -248,17 +248,17 @@ class RawgController extends Controller
                 ];
             }
 
-            // ✅ Usar el total de RAWG, no el filtrado
+            //  Usar el total de RAWG, no el filtrado
             $totalPaginas = $limite > 0 ? ceil($totalJuegosRawg / $limite) : 0;
 
-            Log::info("✅ Juegos en esta página: " . count($juegosProcesados) . " | Total RAWG: " . $totalJuegosRawg);
+            Log::info(" Juegos en esta página: " . count($juegosProcesados) . " | Total RAWG: " . $totalJuegosRawg);
 
             return response()->json([
                 'juegos' => $juegosProcesados,
                 'data' => $juegosProcesados,
                 'paginacion' => [
                     'pagina_actual' => $pagina,
-                    'total_juegos' => $totalJuegosRawg, // ✅ Total de RAWG
+                    'total_juegos' => $totalJuegosRawg, //  Total de RAWG
                     'total_paginas' => $totalPaginas
                 ],
                 'status' => 'success',
@@ -368,7 +368,7 @@ class RawgController extends Controller
                     'test_conexion' => $test->successful() ? 'OK' : 'ERROR',
                     'status_code' => $test->status(),
                     'mensaje' => $test->successful()
-                        ? '✅ RAWG API funcionando correctamente'
+                        ? ' RAWG API funcionando correctamente'
                         : "❌ Error: " . $test->status()
                 ]
             ]);
